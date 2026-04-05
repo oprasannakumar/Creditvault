@@ -1,0 +1,5 @@
+{
+  "name": "SecureCard Vault",
+  "description": "A secure local storage for your credit cards with biometric authentication.",
+  "requestFramePermissions": ["publickey-credentials-create", "publickey-credentials-get"]
+}
