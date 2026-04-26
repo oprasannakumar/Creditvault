@@ -1,13 +1,142 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Card Vault - Biometric Only</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<style>
+body { background:#0f172a; color:white; font-family:sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; }
+.container { text-align:center; max-width:400px; width:100%; }
+.btn { padding:15px; border:none; border-radius:10px; background:#f59e0b; width:100%; font-weight:bold; cursor:pointer; }
+.hidden { display:none; }
+</style>
+</head>
+<body>
 
+<div class="container">
+
+<h2>Card Vault</h2>
+<p>Biometric Secure Access</p>
+
+<button id="bioUnlockBtn" class="btn">🔐 Unlock with Biometrics</button>
+
+<div id="mainContent" class="hidden">
+    <h3>Vault Unlocked ✅</h3>
+    <p>Your secure data is now accessible.</p>
+</div>
+
+</div>
+
+<script>
+
+let MASTER_KEY = "";
+
+// ===== Helpers =====
+function bufferToBase64(buffer) {
+    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+}
+
+function base64ToBuffer(base64) {
+    return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+}
+
+function randomChallenge() {
+    return Uint8Array.from(window.crypto.getRandomValues(new Uint8Array(32)));
+}
+
+// ===== Register Biometric (run once manually if needed) =====
+async function registerBiometric() {
+
+    const challenge = randomChallenge();
+
+    const publicKey = {
+        challenge,
+        rp: { name: "Secure Card Vault" },
+        user: {
+            id: randomChallenge(),
+            name: "vault-user",
+            displayName: "Vault User"
+        },
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+        authenticatorSelection: {
+            authenticatorAttachment: "platform",
+            userVerification: "required"
+        },
+        timeout: 60000,
+        attestation: "none"
+    };
+
+    const credential = await navigator.credentials.create({ publicKey });
+
+    const credId = bufferToBase64(credential.rawId);
+    localStorage.setItem("vault_bio_id", credId);
+    localStorage.setItem("vault_bio_enabled", "true");
+
+    // Create hidden master key (generated once)
+    MASTER_KEY = "AUTO_GENERATED_KEY_" + Date.now();
+
+    const deviceKey = bufferToBase64(randomChallenge());
+    localStorage.setItem("vault_device_key", deviceKey);
+
+    const encryptedMaster = CryptoJS.AES.encrypt(MASTER_KEY, deviceKey).toString();
+    localStorage.setItem("vault_master_enc", encryptedMaster);
+
+    alert("Biometric setup completed!");
+}
+
+// ===== Unlock With Biometrics =====
+async function unlockWithBiometric() {
+
+    const enabled = localStorage.getItem("vault_bio_enabled");
+    const storedId = localStorage.getItem("vault_bio_id");
+
+    if (!enabled || !storedId) {
+        alert("Biometrics not setup. Initializing...");
+        await registerBiometric();
+        return unlockWithBiometric();
+    }
+
+    const challenge = randomChallenge();
+
+    const publicKey = {
+        challenge,
+        allowCredentials: [{
+            id: base64ToBuffer(storedId),
+            type: "public-key",
+            transports: ["internal"]
+        }],
+        userVerification: "required",
+        timeout: 60000
+    };
+
+    try {
+        await navigator.credentials.get({ publicKey });
+
+        const deviceKey = localStorage.getItem("vault_device_key");
+        const encryptedMaster = localStorage.getItem("vault_master_enc");
+
+        const decryptedMaster = CryptoJS.AES.decrypt(encryptedMaster, deviceKey)
+            .toString(CryptoJS.enc.Utf8);
+
+        MASTER_KEY = decryptedMaster;
+
+        document.getElementById("mainContent").classList.remove("hidden");
+
+    } catch (err) {
+        alert("Biometric verification failed.");
+    }
+}
+
+// ===== UI Events =====
+document.getElementById("bioUnlockBtn").addEventListener("click", unlockWithBiometric);
+
+// Auto-trigger biometric on load
+window.addEventListener("load", () => {
+    unlockWithBiometric();
+});
+
+</script>
+
+</body>
+</html>
