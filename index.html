@@ -8,7 +8,8 @@
     <meta name="theme-color" content="#0f172a">
     <link rel="apple-touch-icon" href="icon.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+
 
     <style>
         :root { 
@@ -636,45 +637,53 @@
         e.target.value = v.length > 2 ? v.substring(0, 2) + '/' + v.substring(2, 4) : v;
     });
 
-    window.addEventListener("load", () => {
-        if (window.google) {
-            codeClient = google.accounts.oauth2.initCodeClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: "https://www.googleapis.com/auth/drive.file openid email profile",
-                ux_mode: "popup",
-                prompt: "consent",
-                callback: async (response) => {
-                    if (response.error) {
-                        showToast("Google connection failed");
-                        return;
-                    }
-
-                    showToast("Connecting account...");
-                    try {
-                        const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ code: response.code, redirectUri: "postmessage" })
-                        });
-
-                        const data = await res.json();
-                        if (data.error) throw new Error(data.error);
-
-                        localStorage.setItem("vault_user_id", data.userId);
-                        if (data.email) localStorage.setItem("vault_user_email", data.email);
-                        if (data.name) localStorage.setItem("vault_user_name", data.name);
-                        if (data.picture) localStorage.setItem("vault_user_picture", data.picture);
-
-                        showToast("Google Linked!");
-                        updateProfileUI();
-
-                        await restoreFromCloud(true);
-                    } catch (err) {
-                        alert("Google Authentication Error: " + err.message);
-                    }
+    // --- 1. Separate Google Initialization --- //
+    function initGoogleServices() {
+        if (!window.google || codeClient) return; // Prevent double-loading
+        
+        codeClient = google.accounts.oauth2.initCodeClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: "https://www.googleapis.com/auth/drive.file openid email profile",
+            ux_mode: "popup",
+            prompt: "consent",
+            callback: async (response) => {
+                if (response.error) {
+                    showToast("Google connection failed");
+                    return;
                 }
-            });
-        }
+
+                showToast("Connecting account...");
+                try {
+                    const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ code: response.code, redirectUri: "postmessage" })
+                    });
+
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error);
+
+                    localStorage.setItem("vault_user_id", data.userId);
+                    if (data.email) localStorage.setItem("vault_user_email", data.email);
+                    if (data.name) localStorage.setItem("vault_user_name", data.name);
+                    if (data.picture) localStorage.setItem("vault_user_picture", data.picture);
+
+                    showToast("Google Linked!");
+                    updateProfileUI();
+
+                    // Restore immediately if vault is empty/locked
+                    await restoreFromCloud(true);
+                } catch (err) {
+                    alert("Google Authentication Error: " + err.message);
+                }
+            }
+        });
+    }
+
+    // --- 2. Update Window Load --- //
+    window.addEventListener("load", () => {
+        // Initialize Google immediately
+        initGoogleServices();
 
         const hasVault = localStorage.getItem("vault_hash");
         const bioEnabled = localStorage.getItem("vault_bio_enabled") === "true";
@@ -692,6 +701,21 @@
         }
         updateProfileUI();
     });
+
+    // --- 3. Smarter Connect Drive Function --- //
+    function connectDrive() {
+        // If it failed to load on startup, force it to load now before connecting
+        if (!codeClient) {
+            initGoogleServices();
+        }
+        
+        if (!codeClient) {
+            return alert("Google services are still loading or blocked by your browser. Please try again in a moment.");
+        }
+        
+        codeClient.requestCode();
+    }
+
 
     function unlockVault() {
         const pass = document.getElementById('masterPass').value;
