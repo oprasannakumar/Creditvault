@@ -752,8 +752,9 @@
 
         const renderAvatar = (el) => {
             if (!el) return;
-            if (pictureUrl) {
-                el.innerHTML = `<img src="${pictureUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover; pointer-events:none;">`;
+            if (pictureUrl && pictureUrl !== "undefined") {
+                // Added referrerpolicy to prevent browser blocking
+                el.innerHTML = `<img src="${pictureUrl}" referrerpolicy="no-referrer" style="width:100%; height:100%; border-radius:50%; object-fit:cover; pointer-events:none;">`;
                 el.style.border = "none";
             } else {
                 el.innerHTML = initial;
