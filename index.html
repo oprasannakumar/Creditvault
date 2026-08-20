@@ -19,6 +19,7 @@
             --glass: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
             --danger: #ef4444;
+            --success: #10b981;
         }
 
         body { 
@@ -41,6 +42,7 @@
             text-align: center;
             box-sizing: border-box;
             min-height: 100vh;
+            position: relative;
         }
         
         #onboarding, #unlockSection, #recoverySection, #restoreSection { margin-top: 8vh; }
@@ -67,7 +69,7 @@
         .btn-main:active { transform: scale(0.97); }
         
         .btn-ghost, .btn-danger {
-            height: 36px; display: flex; align-items: center; justify-content: center;
+            height: 38px; display: flex; align-items: center; justify-content: center;
             padding: 0 0.8rem; border-radius: 8px; width: 100%; cursor: pointer;
             font-weight: 500; font-size: 0.9rem; transition: 0.2s; box-sizing: border-box;
         }
@@ -154,7 +156,7 @@
 
         #toast {
             position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: var(--primary-orange); color: black;
-            padding: 0.6rem 1.2rem; border-radius: 20px; font-weight: 600; opacity: 0; transition: 0.3s; z-index: 1000;
+            padding: 0.6rem 1.2rem; border-radius: 20px; font-weight: 600; opacity: 0; transition: 0.3s; z-index: 2000;
         }
 
         .status-footer { margin-top: 2rem; font-size: 0.75rem; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -177,12 +179,51 @@
         }
         .card-list-item:active { background: rgba(255, 255, 255, 0.1); transform: scale(0.98); }
 
+        /* Top Action Bar */
         .top-action-bar {
             position: sticky; top: 0; margin: -2rem -2rem 1.5rem -2rem; padding: 15px 2rem;
             background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             z-index: 100; display: flex; justify-content: space-between; align-items: center;
             border-bottom: 1px solid var(--glass-border);
         }
+
+        .profile-btn {
+            width: 38px; height: 38px; border-radius: 50%; background: var(--glass);
+            border: 1.5px solid var(--primary-orange); color: var(--primary-orange);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            font-weight: 700; font-size: 1.1rem; transition: 0.2s; padding: 0;
+        }
+        .profile-btn:active { transform: scale(0.92); background: rgba(245, 158, 11, 0.15); }
+
+        /* User Profile Modal Menu */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
+            z-index: 1500; display: flex; align-items: flex-start; justify-content: flex-end; padding: 1rem;
+        }
+        .profile-menu {
+            background: #1e293b; border: 1px solid var(--glass-border); border-radius: 16px;
+            width: 100%; max-width: 280px; padding: 1.25rem; margin-top: 3.5rem; text-align: left;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+        .profile-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.8rem; }
+        .profile-avatar {
+            width: 44px; height: 44px; border-radius: 50%; background: rgba(245, 158, 11, 0.15);
+            border: 1px solid var(--primary-orange); display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; color: var(--primary-orange); font-weight: 700;
+        }
+        .profile-info { overflow: hidden; }
+        .profile-name { font-weight: 700; font-size: 0.95rem; color: white; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .profile-email { font-size: 0.75rem; color: var(--text-dim); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        
+        .menu-list { display: flex; flex-direction: column; gap: 6px; }
+        .menu-item {
+            display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px;
+            border-radius: 8px; background: none; border: none; color: white; cursor: pointer;
+            font-size: 0.9rem; font-weight: 500; text-align: left; transition: 0.2s;
+        }
+        .menu-item:active, .menu-item:hover { background: var(--glass); }
+        .menu-item.danger { color: var(--danger); }
+        .menu-item.danger:active, .menu-item.danger:hover { background: rgba(239, 68, 68, 0.1); }
 
         .quick-actions-dock { display: flex; justify-content: space-around; margin: 20px 0; padding: 0 10px; }
         .quick-action-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; border: none; background: none; color: var(--text-dim); font-size: 0.75rem; font-weight: 600; transition: 0.2s; }
@@ -214,11 +255,42 @@
 <div class="container">
     <input type="file" id="importFile" class="hidden" onchange="importData(this)" accept=".txt">
     
+    <!-- User Profile Dropdown Modal -->
+    <div id="profileModal" class="modal-overlay hidden" onclick="closeProfileMenu(event)">
+        <div class="profile-menu" onclick="event.stopPropagation()">
+            <div class="profile-header">
+                <div class="profile-avatar" id="modalAvatar">U</div>
+                <div class="profile-info">
+                    <div class="profile-name" id="modalUserName">Vault User</div>
+                    <div class="profile-email" id="modalUserEmail">Offline Account</div>
+                </div>
+            </div>
+            <div class="menu-list">
+                <button type="button" class="menu-item" onclick="openSettingsView()">
+                    ⚙️ Security Settings
+                </button>
+                <button type="button" class="menu-item" onclick="triggerUniversalBackup()">
+                    📦 Full Backup (Drive & File)
+                </button>
+                <button type="button" class="menu-item" id="googleMenuBtn" onclick="toggleGoogleConnection()">
+                    ☁️ Link Google Account
+                </button>
+                <button type="button" class="menu-item danger" onclick="handleVaultLogout()">
+                    🔒 Lock Vault
+                </button>
+                <button type="button" class="menu-item danger" onclick="exitVaultApp()">
+                    🚪 Exit Application
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding Screen -->
     <div id="onboarding" class="hidden">
         <div id="step1">
             <div class="bio-icon-wrapper"><div class="bio-icon-circle"><span class="bio-icon">👋</span></div></div>
             <h3>Secure Vault</h3>
-            <p class="sub-text">Encryption at your fingertips. All data stays on your device.</p>
+            <p class="sub-text">Zero-knowledge local encryption. You hold the only keys.</p>
             <button type="button" class="btn-main" onclick="nextStep(2)">Get Started</button>
             <button type="button" class="btn-ghost" onclick="connectDrive()" style="margin-top:12px; color:var(--primary-orange); border-color:var(--primary-orange);">
                 ☁️ Link & Restore from Google
@@ -254,6 +326,7 @@
         </div>
     </div>
 
+    <!-- Unlock Section -->
     <div id="unlockSection" class="hidden">
         <div class="bio-icon-wrapper">
             <div class="bio-icon-circle">
@@ -289,6 +362,7 @@
         </div>
     </div>
 
+    <!-- Restore Section -->
     <div id="restoreSection" class="hidden">
         <h3>Restore Backup</h3>
         <p class="sub-text">Enter the password used when this backup was created.</p>
@@ -302,6 +376,7 @@
         <button type="button" class="btn-link" onclick="cancelRestore()">Cancel</button>
     </div>
 
+    <!-- Recovery Section -->
     <div id="recoverySection" class="hidden">
         <h3>Reset Vault</h3>
         <p class="sub-text">Enter your 16-character Recovery Key:</p>
@@ -310,14 +385,15 @@
         <button type="button" class="btn-link" onclick="location.reload()">Cancel</button>
     </div>
 
+    <!-- Main Authenticated Content -->
     <div id="mainContent" class="hidden">
         
         <div class="top-action-bar">
             <h2 style="margin:0; font-size:1.15rem; color:var(--text-white); font-weight:700;">My Vault</h2>
-            <div style="display:flex; gap:8px;">
-                <button type="button" id="topBackupBtn" class="btn-ghost" style="width:36px; height:36px; padding:0; font-size:1.1rem;" onclick="exportData()" title="Local Backup">📦</button>
-                <button type="button" class="btn-ghost" style="width:36px; height:36px; padding:0; font-size:1.1rem;" onclick="toggleSettings()" title="Settings">⚙️</button>
-                <button type="button" class="btn-danger" style="width:36px; height:36px; padding:0; font-size:1.1rem;" onclick="handleVaultLogout()" title="Lock Vault">🔒</button>
+            <div style="display:flex; gap:8px; align-items: center;">
+                <button type="button" class="profile-btn" id="topProfileAvatar" onclick="toggleProfileMenu()" title="Account & Menu">
+                    U
+                </button>
             </div>
         </div>
 
@@ -328,53 +404,56 @@
         
         <button type="button" class="fab" id="actionBtn" onclick="handleMainAction()">+</button>
 
+        <!-- Security Settings Section -->
         <div id="settingsSection" class="hidden">
             <h3>Security Settings</h3>
 
-            <!-- Collapsible Change Password Box -->
-            <button type="button" id="togglePassFieldsBtn" class="btn-ghost" style="margin-bottom:12px;" onclick="togglePasswordChangeFields()">
-                🔑 Change Master Password
-            </button>
-            
-            <div id="passChangeArea" class="hidden">
-                <div class="pwd-wrapper">
-                    <input type="password" id="settCurrPass" placeholder="Current Password">
-                    <button type="button" class="pwd-toggle" onclick="togglePwd('settCurrPass', this)" tabindex="-1">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    </button>
-                </div>
-                
-                <div class="pwd-wrapper">
-                    <input type="password" id="settNewPass" placeholder="New Password">
-                    <button type="button" class="pwd-toggle" onclick="togglePwd('settNewPass', this)" tabindex="-1">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    </button>
-                </div>
-                <button type="button" class="btn-main" onclick="changePassword()">Save New Password</button>
-            </div>
+            <!-- Password Change Interface with Confirmation -->
+            <div id="passChangeWrapper">
+                <button type="button" id="startChangePassBtn" class="btn-ghost" style="margin-bottom:12px;" onclick="enterPasswordChangeMode()">
+                    🔑 Change Master Password
+                </button>
 
-            <!-- Dynamic Cloud / Local Storage Section -->
-            <div id="cloudSettingsArea" style="margin-top: 15px;">
-                <div id="googleConnectedView" class="hidden">
-                    <p id="googleUserLabel" class="sub-text" style="margin-bottom:8px; color:#10b981; font-size:0.85rem;">Connected to Google</p>
-                    <button type="button" class="btn-ghost" style="margin-bottom:8px; border-color:var(--primary-orange); color:var(--primary-orange);" onclick="syncToCloud(true)">☁️ Sync to Google Drive Now</button>
-                    <button type="button" class="btn-danger" style="margin-bottom:12px;" onclick="logoutGoogle()">🚪 Disconnect Google Account</button>
-                </div>
-                <div id="googleDisconnectedView">
-                    <button type="button" class="btn-ghost" style="margin-bottom:8px; border-color:var(--primary-orange); color:var(--primary-orange);" onclick="connectDrive()">☁️ Link Google Account</button>
-                    <button type="button" class="btn-ghost" style="margin-bottom:12px;" onclick="exportData()">📦 Download Local File Backup</button>
+                <div id="passChangeFields" class="hidden">
+                    <div class="pwd-wrapper">
+                        <input type="password" id="settCurrPass" placeholder="Current Master Password">
+                        <button type="button" class="pwd-toggle" onclick="togglePwd('settCurrPass', this)" tabindex="-1">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+                    
+                    <div class="pwd-wrapper">
+                        <input type="password" id="settNewPass" placeholder="New Master Password">
+                        <button type="button" class="pwd-toggle" onclick="togglePwd('settNewPass', this)" tabindex="-1">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+
+                    <div class="pwd-wrapper">
+                        <input type="password" id="settConfirmPass" placeholder="Confirm New Master Password">
+                        <button type="button" class="pwd-toggle" onclick="togglePwd('settConfirmPass', this)" tabindex="-1">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+
+                    <button type="button" class="btn-main" onclick="changePassword()">Save New Password</button>
+                    <button type="button" class="btn-ghost" onclick="exitPasswordChangeMode()">Cancel</button>
                 </div>
             </div>
 
-            <div id="rkBox" class="hidden">
-                <div class="rk-display" id="rkVal"></div>
+            <!-- Other Settings (Hidden during active password change) -->
+            <div id="generalSettingsGroup">
+                <div id="rkBox" class="hidden">
+                    <div class="rk-display" id="rkVal"></div>
+                </div>
+                <button type="button" class="btn-link" onclick="generateAndSaveRK()" id="rkBtn">Generate Recovery Key</button>
+                <button type="button" class="btn-link" onclick="registerBiometric()">🔐 Setup Biometrics</button>
+                <button type="button" class="btn-link" style="color:var(--danger)" onclick="disableBiometric()">❌ Disable Biometrics</button>
+                <button type="button" class="btn-ghost" style="margin-top:15px;" onclick="closeSettingsView()">⬅️ Back to Cards</button>
             </div>
-            <button type="button" class="btn-link" onclick="generateAndSaveRK()" id="rkBtn">Generate Recovery Key</button>
-            <button type="button" class="btn-link" onclick="registerBiometric()">🔐 Setup Biometrics</button>
-            <button type="button" class="btn-link" style="color:var(--danger)" onclick="disableBiometric()">❌ Disable Biometrics</button>
-            <button type="button" class="btn-link" onclick="toggleSettings()">Close Settings</button>
         </div>
 
+        <!-- Add / Edit Form -->
         <div id="addForm" class="hidden">
             <div class="form-tabs">
                 <button type="button" class="tab-btn active" id="tabCard" onclick="switchFormTab('card')">💳 Card</button>
@@ -562,7 +641,7 @@
         document.getElementById("unlockSection").classList.add("hidden");
         document.getElementById("mainContent").classList.remove("hidden");
         updateDropdown();
-        updateSettingsSyncUI();
+        updateProfileUI();
     }
 
     // Input Formatters
@@ -581,7 +660,6 @@
     });
 
     window.addEventListener("load", () => {
-        // Initialize Google Identity Services
         if (window.google) {
             codeClient = google.accounts.oauth2.initCodeClient({
                 client_id: GOOGLE_CLIENT_ID,
@@ -589,11 +667,11 @@
                 ux_mode: "popup",
                 callback: async (response) => {
                     if (response.error) {
-                        showToast("Authentication failed");
+                        showToast("Google connection failed");
                         return;
                     }
 
-                    showToast("Linking account...");
+                    showToast("Connecting account...");
                     try {
                         const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
                             method: "POST",
@@ -606,11 +684,12 @@
 
                         localStorage.setItem("vault_user_id", data.userId);
                         if (data.email) localStorage.setItem("vault_user_email", data.email);
+                        if (data.name) localStorage.setItem("vault_user_name", data.name);
 
-                        showToast("Google Linked! Checking cloud backup...");
-                        updateSettingsSyncUI();
+                        showToast("Google Linked!");
+                        updateProfileUI();
 
-                        // Automatically attempt cloud restore upon login
+                        // Automatically attempt restore if unlocking or in empty vault
                         await restoreFromCloud(true);
                     } catch (err) {
                         alert("Google Authentication Error: " + err.message);
@@ -633,7 +712,7 @@
                 document.getElementById("bioUnlockBtn").classList.add("hidden");
             }
         }
-        updateSettingsSyncUI();
+        updateProfileUI();
     });
 
     function unlockVault() {
@@ -642,7 +721,7 @@
         if (!storedHash) {
             MASTER_KEY = pass;
             localStorage.setItem('vault_hash', CryptoJS.SHA256(pass).toString());
-            alert("Vault created! Visit Settings to generate your Recovery Key.");
+            alert("Vault created! Generate your Recovery Key in Settings.");
         } else {
             if (CryptoJS.SHA256(pass).toString() !== storedHash) return alert("Wrong password!");
             MASTER_KEY = pass;
@@ -650,42 +729,88 @@
         document.getElementById('unlockSection').classList.add('hidden');
         document.getElementById('mainContent').classList.remove('hidden');
         updateDropdown();
-        updateSettingsSyncUI();
+        updateProfileUI();
     }
 
-    // --- GOOGLE & CLOUD SYNC LOGIC --- //
-    function connectDrive() {
-        if (!codeClient) return alert("Google services not ready. Please refresh.");
-        codeClient.requestCode();
-    }
+    // --- Profile & Menu Actions --- //
+    function updateProfileUI() {
+        const email = localStorage.getItem("vault_user_email");
+        const name = localStorage.getItem("vault_user_name") || "Prasanna Kumar";
+        const initial = email ? email.charAt(0).toUpperCase() : name.charAt(0).toUpperCase();
 
-    function logoutGoogle() {
-        if (confirm("Disconnect Google Account from this vault? Automatic cloud sync will be paused.")) {
-            localStorage.removeItem("vault_user_id");
-            localStorage.removeItem("vault_user_email");
-            updateSettingsSyncUI();
-            showToast("Google Account Disconnected");
+        const topAvatar = document.getElementById("topProfileAvatar");
+        const modalAvatar = document.getElementById("modalAvatar");
+        const modalName = document.getElementById("modalUserName");
+        const modalEmail = document.getElementById("modalUserEmail");
+        const googleBtn = document.getElementById("googleMenuBtn");
+
+        if (topAvatar) topAvatar.innerText = initial;
+        if (modalAvatar) modalAvatar.innerText = initial;
+        if (modalName) modalName.innerText = name;
+        if (modalEmail) modalEmail.innerText = email || "Offline Mode (Local Storage Only)";
+
+        if (googleBtn) {
+            if (email) {
+                googleBtn.innerText = "🚪 Unlink Google Account";
+                googleBtn.classList.add("danger");
+            } else {
+                googleBtn.innerText = "☁️ Link Google Account";
+                googleBtn.classList.remove("danger");
+            }
         }
     }
 
-    function updateSettingsSyncUI() {
+    function toggleProfileMenu() {
+        const modal = document.getElementById("profileModal");
+        modal.classList.toggle("hidden");
+    }
+
+    function closeProfileMenu(e) {
+        document.getElementById("profileModal").classList.add("hidden");
+    }
+
+    function toggleGoogleConnection() {
+        closeProfileMenu();
         const userId = localStorage.getItem("vault_user_id");
-        const userEmail = localStorage.getItem("vault_user_email");
-        const connectedView = document.getElementById("googleConnectedView");
-        const disconnectedView = document.getElementById("googleDisconnectedView");
-        const userLabel = document.getElementById("googleUserLabel");
-        const topBackupBtn = document.getElementById("topBackupBtn");
-
         if (userId) {
-            if (connectedView) connectedView.classList.remove("hidden");
-            if (disconnectedView) disconnectedView.classList.add("hidden");
-            if (userLabel) userLabel.innerText = userEmail ? `✅ Linked: ${userEmail}` : "✅ Google Drive Active";
-            if (topBackupBtn) topBackupBtn.title = "Sync to Google Drive";
+            if (confirm("Disconnect Google Account? Cloud sync will be deactivated.")) {
+                localStorage.removeItem("vault_user_id");
+                localStorage.removeItem("vault_user_email");
+                localStorage.removeItem("vault_user_name");
+                updateProfileUI();
+                showToast("Google Account Unlinked");
+            }
         } else {
-            if (connectedView) connectedView.classList.add("hidden");
-            if (disconnectedView) disconnectedView.classList.remove("hidden");
-            if (topBackupBtn) topBackupBtn.title = "Backup to File";
+            connectDrive();
         }
+    }
+
+    function exitVaultApp() {
+        closeProfileMenu();
+        if (confirm("Exit application and lock vault?")) {
+            handleVaultLogout();
+        }
+    }
+
+    // --- Full Universal Backup (Drive + Local File) --- //
+    async function triggerUniversalBackup() {
+        closeProfileMenu();
+        showToast("Starting full backup...");
+
+        // 1. Sync to Google Drive if connected
+        const userId = localStorage.getItem("vault_user_id");
+        if (userId) {
+            await syncToCloud(false);
+        }
+
+        // 2. Export local text file
+        exportData();
+        showToast("Backup Complete (Drive & File) ✅");
+    }
+
+    function connectDrive() {
+        if (!codeClient) return alert("Google services not initialized. Check connection.");
+        codeClient.requestCode();
     }
 
     async function syncToCloud(isManual = false) {
@@ -694,8 +819,6 @@
 
         const encryptedData = localStorage.getItem('vault_data');
         if (!encryptedData) return;
-
-        if (isManual) showToast("Syncing to Google Drive...");
 
         try {
             const res = await fetch(`${BACKEND_URL}/api/drive/sync`, {
@@ -706,8 +829,7 @@
 
             const data = await res.json();
             if (data.error) throw new Error(data.error);
-
-            if (isManual) showToast("Cloud Sync Complete! ☁️");
+            if (isManual) showToast("Synced to Drive! ☁️");
         } catch (e) {
             console.error("Sync error:", e);
             if (isManual) alert("Cloud Sync Failed: " + e.message);
@@ -718,7 +840,7 @@
         const userId = localStorage.getItem("vault_user_id");
         if (!userId) return;
 
-        showToast("Fetching cloud backup...");
+        showToast("Checking cloud backup...");
 
         try {
             const res = await fetch(`${BACKEND_URL}/api/drive/restore`, {
@@ -729,7 +851,7 @@
 
             const data = await res.json();
             if (data.error) {
-                if (isInitialAuto) return showToast("No cloud backup found. Vault ready.");
+                if (isInitialAuto) return showToast("No cloud file found. Vault ready.");
                 throw new Error(data.error);
             }
 
@@ -745,31 +867,188 @@
                 localStorage.setItem('vault_hash', CryptoJS.SHA256(pass).toString());
                 MASTER_KEY = pass;
 
-                showToast("Vault Restored Successfully! ✅");
+                showToast("Restored from Drive! ✅");
                 document.getElementById('onboarding').classList.add('hidden');
                 document.getElementById('unlockSection').classList.add('hidden');
                 document.getElementById('mainContent').classList.remove('hidden');
                 updateDropdown();
-                updateSettingsSyncUI();
+                updateProfileUI();
             } catch (decErr) {
-                alert("Decryption failed. Incorrect Master Password.");
+                alert("Decryption failed. Wrong Master Password.");
             }
         } catch (e) {
             alert("Restore Error: " + e.message);
         }
     }
 
-    // Auto-sync on vault lock
     async function handleVaultLogout() {
         const userId = localStorage.getItem("vault_user_id");
         if (userId) {
-            showToast("Syncing changes...");
             await syncToCloud(false);
         }
         location.reload();
     }
 
-    // --- FORM LOGIC ---
+    // --- Settings UI Navigation --- //
+    function openSettingsView() {
+        closeProfileMenu();
+        resetPasswordIcons();
+        exitPasswordChangeMode();
+        
+        document.getElementById('cardListView').classList.add('hidden');
+        document.getElementById('cardDisplay').classList.add('hidden');
+        document.getElementById('actionBtn').classList.add('hidden');
+        document.getElementById('addForm').classList.add('hidden');
+        document.getElementById('settingsSection').classList.remove('hidden');
+        updateBiometricUI();
+    }
+
+    function closeSettingsView() {
+        resetPasswordIcons();
+        document.getElementById('settingsSection').classList.add('hidden');
+        
+        const id = document.getElementById('cardSelector').value;
+        if (id) {
+            handleSelection();
+        } else {
+            document.getElementById('cardListView').classList.remove('hidden');
+            document.getElementById('actionBtn').classList.remove('hidden');
+        }
+    }
+
+    function enterPasswordChangeMode() {
+        document.getElementById('startChangePassBtn').classList.add('hidden');
+        document.getElementById('passChangeFields').classList.remove('hidden');
+        document.getElementById('generalSettingsGroup').classList.add('hidden');
+    }
+
+    function exitPasswordChangeMode() {
+        document.getElementById('startChangePassBtn').classList.remove('hidden');
+        document.getElementById('passChangeFields').classList.add('hidden');
+        document.getElementById('generalSettingsGroup').classList.remove('hidden');
+        document.getElementById('settCurrPass').value = "";
+        document.getElementById('settNewPass').value = "";
+        document.getElementById('settConfirmPass').value = "";
+        resetPasswordIcons();
+    }
+
+    function changePassword() {
+        const curr = document.getElementById('settCurrPass').value;
+        const next = document.getElementById('settNewPass').value;
+        const confirm = document.getElementById('settConfirmPass').value;
+
+        if (CryptoJS.SHA256(curr).toString() !== localStorage.getItem('vault_hash')) {
+            return alert("Current master password incorrect!");
+        }
+        if (!next || next.length < 4) {
+            return alert("New password must be at least 4 characters.");
+        }
+        if (next !== confirm) {
+            return alert("New password and confirm password do not match!");
+        }
+        
+        const cards = getCards();
+        // Master password is only used locally to re-encrypt stored items and hash
+        localStorage.setItem('vault_data', CryptoJS.AES.encrypt(JSON.stringify(cards), next).toString());
+        localStorage.setItem('vault_hash', CryptoJS.SHA256(next).toString());
+        MASTER_KEY = next;
+        
+        alert("Master password updated successfully for local storage!");
+        exitPasswordChangeMode();
+        closeSettingsView();
+    }
+
+    function generateAndSaveRK() {
+        const curr = prompt("Enter your Master Password to generate a Recovery Key:");
+        if (CryptoJS.SHA256(curr).toString() !== localStorage.getItem('vault_hash')) return alert("Password incorrect!");
+        let r = ""; const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        for(let i=0; i<16; i++) { if(i>0 && i%4===0) r+="-"; r+=c.charAt(Math.floor(Math.random()*c.length)); }
+        localStorage.setItem('vault_rk', CryptoJS.SHA256(r).toString());
+        document.getElementById('rkVal').innerText = r;
+        document.getElementById('rkBox').classList.remove('hidden');
+        alert("Recovery Key Generated!");
+    }
+
+    function exportData() {
+        const blob = new Blob([JSON.stringify({data:localStorage.getItem('vault_data'), hash:localStorage.getItem('vault_hash'), rk:localStorage.getItem('vault_rk')})], {type:"text/plain"});
+        const a = document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="vault_backup.txt"; a.click();
+    }
+
+    function importData(i) {
+        if (!i.files || !i.files[0]) return;
+        const r = new FileReader();
+        r.onload = (e) => {
+            try {
+                const j = JSON.parse(e.target.result);
+                if (!j.hash || !j.data) throw new Error("Invalid format");
+                
+                pendingRestoreData = j;
+                
+                document.getElementById('onboarding').classList.add('hidden');
+                document.getElementById('unlockSection').classList.add('hidden');
+                document.getElementById('mainContent').classList.add('hidden');
+                
+                document.getElementById('restorePass').value = '';
+                resetPasswordIcons();
+                document.getElementById('restoreSection').classList.remove('hidden');
+
+            } catch(err) {
+                alert("Backup file corrupted or incompatible.");
+                console.error(err);
+            }
+            i.value = ''; 
+        };
+        r.readAsText(i.files[0]);
+    }
+
+    function confirmRestore() {
+        if (!pendingRestoreData) return;
+        const pass = document.getElementById('restorePass').value;
+        if (!pass) return alert("Please enter the password.");
+
+        const j = pendingRestoreData;
+
+        if (CryptoJS.SHA256(pass).toString() !== j.hash) {
+            alert("Wrong password for this backup!");
+            return;
+        }
+
+        try {
+            const decrypted = CryptoJS.AES.decrypt(j.data, pass).toString(CryptoJS.enc.Utf8);
+            if (!decrypted) throw new Error("Decryption failed");
+            
+            localStorage.setItem('vault_data', j.data);
+            localStorage.setItem('vault_hash', j.hash);
+            if (j.rk) localStorage.setItem('vault_rk', j.rk);
+
+            MASTER_KEY = pass; 
+            alert("Backup restored successfully!");
+
+            document.getElementById('restoreSection').classList.add('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            updateDropdown();
+            updateProfileUI();
+        } catch(err) {
+            alert("Failed to decrypt backup data.");
+        }
+    }
+
+    function cancelRestore() {
+        pendingRestoreData = null;
+        document.getElementById('restoreSection').classList.add('hidden');
+        location.reload(); 
+    }
+
+    function showRecovery() { document.getElementById('unlockSection').classList.add('hidden'); document.getElementById('recoverySection').classList.remove('hidden'); }
+    
+    function handleRecovery() {
+        const input = document.getElementById('rkInput').value.trim();
+        if (CryptoJS.SHA256(input).toString() !== localStorage.getItem('vault_rk')) return alert("Invalid Recovery Key!");
+        const next = prompt("Enter New Master Password:");
+        if (next && next.length >= 4) { localStorage.setItem('vault_hash', CryptoJS.SHA256(next).toString()); location.reload(); }
+    }
+
+    // --- Card List & Item Management --- //
     function switchFormTab(tab) {
         document.getElementById('itemType').value = tab;
         if(tab === 'card') {
@@ -925,7 +1204,6 @@
         document.getElementById('cardSelector').value = item.id;
         handleSelection();
 
-        // Background auto-sync if connected
         syncToCloud(false);
     }
 
@@ -1276,143 +1554,6 @@
         }
     }
 
-    function togglePasswordChangeFields() {
-        const area = document.getElementById('passChangeArea');
-        area.classList.toggle('hidden');
-    }
-
-    function toggleSettings() {
-        resetPasswordIcons();
-        const settings = document.getElementById('settingsSection');
-        const isHidden = settings.classList.toggle('hidden');
-        const id = document.getElementById('cardSelector').value;
-
-        if (!isHidden) {
-            document.getElementById('cardListView').classList.add('hidden');
-            document.getElementById('cardDisplay').classList.add('hidden');
-            document.getElementById('actionBtn').classList.add('hidden');
-            document.getElementById('addForm').classList.add('hidden');
-            document.getElementById('passChangeArea').classList.add('hidden');
-            updateBiometricUI();
-            updateSettingsSyncUI();
-        } else {
-            if (id) {
-                handleSelection();
-            } else {
-                document.getElementById('cardListView').classList.remove('hidden');
-                document.getElementById('actionBtn').classList.remove('hidden');
-            }
-        }
-    }
-
-    function changePassword() {
-        const curr = document.getElementById('settCurrPass').value;
-        const next = document.getElementById('settNewPass').value;
-        if (CryptoJS.SHA256(curr).toString() !== localStorage.getItem('vault_hash')) return alert("Current password incorrect!");
-        if (!next || next.length < 4) return alert("New password must be at least 4 characters.");
-        
-        const cards = getCards();
-        localStorage.setItem('vault_data', CryptoJS.AES.encrypt(JSON.stringify(cards), next).toString());
-        localStorage.setItem('vault_hash', CryptoJS.SHA256(next).toString());
-        MASTER_KEY = next;
-        
-        // Auto sync updated data to Drive
-        syncToCloud(false);
-        
-        alert("Password updated and synced!");
-        location.reload();
-    }
-
-    function generateAndSaveRK() {
-        const curr = prompt("Enter your Master Password to generate a Recovery Key:");
-        if (CryptoJS.SHA256(curr).toString() !== localStorage.getItem('vault_hash')) return alert("Password incorrect!");
-        let r = ""; const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        for(let i=0; i<16; i++) { if(i>0 && i%4===0) r+="-"; r+=c.charAt(Math.floor(Math.random()*c.length)); }
-        localStorage.setItem('vault_rk', CryptoJS.SHA256(r).toString());
-        document.getElementById('rkVal').innerText = r;
-        document.getElementById('rkBox').classList.remove('hidden');
-        alert("Recovery Key Generated!");
-    }
-
-    function exportData() {
-        const blob = new Blob([JSON.stringify({data:localStorage.getItem('vault_data'), hash:localStorage.getItem('vault_hash'), rk:localStorage.getItem('vault_rk')})], {type:"text/plain"});
-        const a = document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="vault_backup.txt"; a.click();
-    }
-
-    function importData(i) {
-        if (!i.files || !i.files[0]) return;
-        const r = new FileReader();
-        r.onload = (e) => {
-            try {
-                const j = JSON.parse(e.target.result);
-                if (!j.hash || !j.data) throw new Error("Invalid format");
-                
-                pendingRestoreData = j;
-                
-                document.getElementById('onboarding').classList.add('hidden');
-                document.getElementById('unlockSection').classList.add('hidden');
-                document.getElementById('mainContent').classList.add('hidden');
-                
-                document.getElementById('restorePass').value = '';
-                resetPasswordIcons();
-                document.getElementById('restoreSection').classList.remove('hidden');
-
-            } catch(err) {
-                alert("Backup file corrupted or incompatible.");
-                console.error(err);
-            }
-            i.value = ''; 
-        };
-        r.readAsText(i.files[0]);
-    }
-
-    function confirmRestore() {
-        if (!pendingRestoreData) return;
-        const pass = document.getElementById('restorePass').value;
-        if (!pass) return alert("Please enter the password.");
-
-        const j = pendingRestoreData;
-
-        if (CryptoJS.SHA256(pass).toString() !== j.hash) {
-            alert("Wrong password for this backup!");
-            return;
-        }
-
-        try {
-            const decrypted = CryptoJS.AES.decrypt(j.data, pass).toString(CryptoJS.enc.Utf8);
-            if (!decrypted) throw new Error("Decryption failed");
-            
-            localStorage.setItem('vault_data', j.data);
-            localStorage.setItem('vault_hash', j.hash);
-            if (j.rk) localStorage.setItem('vault_rk', j.rk);
-
-            MASTER_KEY = pass; 
-            alert("Backup restored successfully!");
-
-            document.getElementById('restoreSection').classList.add('hidden');
-            document.getElementById('mainContent').classList.remove('hidden');
-            updateDropdown();
-            updateSettingsSyncUI();
-        } catch(err) {
-            alert("Failed to decrypt backup data.");
-        }
-    }
-
-    function cancelRestore() {
-        pendingRestoreData = null;
-        document.getElementById('restoreSection').classList.add('hidden');
-        location.reload(); 
-    }
-
-    function showRecovery() { document.getElementById('unlockSection').classList.add('hidden'); document.getElementById('recoverySection').classList.remove('hidden'); }
-    
-    function handleRecovery() {
-        const input = document.getElementById('rkInput').value.trim();
-        if (CryptoJS.SHA256(input).toString() !== localStorage.getItem('vault_rk')) return alert("Invalid Recovery Key!");
-        const next = prompt("Enter New Master Password:");
-        if (next && next.length >= 4) { localStorage.setItem('vault_hash', CryptoJS.SHA256(next).toString()); location.reload(); }
-    }
-
     // ===== WebAuthn Helpers =====
     function bufferToBase64(buffer) { return btoa(String.fromCharCode(...new Uint8Array(buffer))); }
     function base64ToBuffer(base64) { return Uint8Array.from(atob(base64), c => c.charCodeAt(0)); }
@@ -1480,7 +1621,7 @@
             document.getElementById('unlockSection').classList.add('hidden');
             document.getElementById('mainContent').classList.remove('hidden');
             updateDropdown();
-            updateSettingsSyncUI();
+            updateProfileUI();
         } catch (err) {
             alert("Biometric verification failed.");
         }
