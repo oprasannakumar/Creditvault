@@ -195,35 +195,25 @@
         }
         .profile-btn:active { transform: scale(0.92); background: rgba(245, 158, 11, 0.15); }
 
-        /* User Profile Modal Menu */
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
-            z-index: 1500; display: flex; align-items: flex-start; justify-content: flex-start; padding: 1rem;
-        }
-        .profile-menu {
-            background: #1e293b; border: 1px solid var(--glass-border); border-radius: 16px;
-            width: 100%; max-width: 280px; padding: 1.25rem; margin-top: 3.5rem; text-align: left;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-        }
-        .profile-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.8rem; }
+        /* Full Screen Profile & Settings */
+        .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; }
         .profile-avatar {
-            width: 44px; height: 44px; border-radius: 50%; background: rgba(245, 158, 11, 0.15);
-            border: 1px solid var(--primary-orange); display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; color: var(--primary-orange); font-weight: 700;
+            width: 70px; height: 70px; border-radius: 50%; background: rgba(245, 158, 11, 0.15);
+            border: 1.5px solid var(--primary-orange); display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; color: var(--primary-orange); font-weight: 700; margin-bottom: 10px;
         }
-        .profile-info { overflow: hidden; }
-        .profile-name { font-weight: 700; font-size: 0.95rem; color: white; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
-        .profile-email { font-size: 0.75rem; color: var(--text-dim); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .profile-name { font-weight: 700; font-size: 1.2rem; color: white; }
+        .profile-email { font-size: 0.85rem; color: var(--text-dim); }
         
-        .menu-list { display: flex; flex-direction: column; gap: 6px; }
+        .menu-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
         .menu-item {
-            display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px;
-            border-radius: 8px; background: none; border: none; color: white; cursor: pointer;
-            font-size: 0.9rem; font-weight: 500; text-align: left; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px;
+            border-radius: 12px; background: var(--glass); border: 1px solid var(--glass-border); color: white; cursor: pointer;
+            font-size: 0.95rem; font-weight: 600; transition: 0.2s;
         }
-        .menu-item:active, .menu-item:hover { background: var(--glass); }
-        .menu-item.danger { color: var(--danger); }
-        .menu-item.danger:active, .menu-item.danger:hover { background: rgba(239, 68, 68, 0.1); }
+        .menu-item:active { background: rgba(255,255,255,0.1); transform: scale(0.98); }
+        .menu-item.danger { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); }
+        .menu-item.danger:active { background: rgba(239, 68, 68, 0.15); }
 
         .quick-actions-dock { display: flex; justify-content: space-around; margin: 20px 0; padding: 0 10px; }
         .quick-action-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; border: none; background: none; color: var(--text-dim); font-size: 0.75rem; font-weight: 600; transition: 0.2s; }
@@ -254,33 +244,6 @@
 
 <div class="container">
     <input type="file" id="importFile" class="hidden" onchange="importData(this)" accept=".txt">
-    
-    <!-- User Profile Dropdown Modal -->
-    <div id="profileModal" class="modal-overlay hidden" onclick="closeProfileMenu(event)">
-        <div class="profile-menu" onclick="event.stopPropagation()">
-            <div class="profile-header">
-                <div class="profile-avatar" id="modalAvatar">U</div>
-                <div class="profile-info">
-                    <div class="profile-name" id="modalUserName">Vault User</div>
-                    <div class="profile-email" id="modalUserEmail">Offline Account</div>
-                </div>
-            </div>
-            <div class="menu-list">
-                <button type="button" class="menu-item" onclick="openSettingsView()">
-                    ⚙️ Security Settings
-                </button>
-                <button type="button" class="menu-item" onclick="triggerUniversalBackup()">
-                    📦 Full Backup (Drive & File)
-                </button>
-                <button type="button" class="menu-item" id="googleMenuBtn" onclick="toggleGoogleConnection()">
-                    ☁️ Link Google Account
-                </button>
-                <button type="button" class="menu-item danger" onclick="handleVaultLogout()">
-                    🔒 Lock Vault
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- Onboarding Screen -->
     <div id="onboarding" class="hidden">
@@ -388,10 +351,10 @@
         <!-- Updated Top Bar Structure -->
         <div class="top-action-bar">
             <div style="display:flex; align-items: center; gap: 12px;">
-                <button type="button" class="profile-btn" id="topProfileAvatar" onclick="toggleProfileMenu()" title="Account & Menu">
+                <button type="button" class="profile-btn" id="topProfileAvatar" onclick="openProfileSettings()" title="Profile & Settings">
                     U
                 </button>
-                <button type="button" id="settingsBackBtn" class="btn-ghost hidden" style="padding: 0 10px; height: 38px; width: auto; border-color: var(--primary-orange); color: var(--primary-orange);" onclick="closeSettingsView()">
+                <button type="button" id="settingsBackBtn" class="btn-ghost hidden" style="padding: 0 10px; height: 38px; width: auto; border-color: var(--primary-orange); color: var(--primary-orange);" onclick="closeProfileSettings()">
                     ⬅️ Back
                 </button>
                 <h2 id="topBarTitle" style="margin:0; font-size:1.15rem; color:var(--text-white); font-weight:700;">My Vault</h2>
@@ -402,65 +365,71 @@
         </div>
 
         <input type="hidden" id="cardSelector" value="">
-        <div id="cardListView"></div>
-
-        <div id="cardDisplay"></div>
         
+        <!-- Cards Interface -->
+        <div id="cardListView"></div>
+        <div id="cardDisplay"></div>
         <button type="button" class="fab" id="actionBtn" onclick="handleMainAction()">+</button>
 
-        <!-- Security Settings Section -->
-        <div id="settingsSection" class="hidden">
-            <h3>Security Settings</h3>
-
-            <!-- Password Change Interface -->
-            <div id="passChangeWrapper">
-                <button type="button" id="startChangePassBtn" class="btn-ghost" style="margin-bottom:12px;" onclick="enterPasswordChangeMode()">
-                    🔑 Change Master Password
-                </button>
-
-                <div id="passChangeFields" class="hidden">
-                    <div class="pwd-wrapper">
-                        <input type="password" id="settCurrPass" placeholder="Current Master Password">
-                        <button type="button" class="pwd-toggle" onclick="togglePwd('settCurrPass', this)" tabindex="-1">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        </button>
-                    </div>
-                    
-                    <div class="pwd-wrapper">
-                        <input type="password" id="settNewPass" placeholder="New Master Password">
-                        <button type="button" class="pwd-toggle" onclick="togglePwd('settNewPass', this)" tabindex="-1">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        </button>
-                    </div>
-
-                    <div class="pwd-wrapper">
-                        <input type="password" id="settConfirmPass" placeholder="Confirm New Master Password">
-                        <button type="button" class="pwd-toggle" onclick="togglePwd('settConfirmPass', this)" tabindex="-1">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        </button>
-                    </div>
-
-                    <button type="button" class="btn-main" onclick="changePassword()">Save New Password</button>
-                    <button type="button" class="btn-ghost" onclick="exitPasswordChangeMode()">Cancel</button>
-                </div>
+        <!-- Full Screen Profile & Settings Section -->
+        <div id="profileSettingsView" class="hidden" style="padding-top: 1rem;">
+            
+            <div class="profile-header">
+                <div class="profile-avatar" id="settingsAvatar">U</div>
+                <div class="profile-name" id="settingsUserName">Vault User</div>
+                <div class="profile-email" id="settingsUserEmail">Offline Account</div>
             </div>
 
-            <!-- Other Settings -->
-            <div id="generalSettingsGroup">
-                <div id="rkBox" class="hidden">
-                    <div class="rk-display" id="rkVal"></div>
-                </div>
-                <button type="button" class="btn-link" onclick="generateAndSaveRK()" id="rkBtn">Generate Recovery Key</button>
-                <button type="button" class="btn-link" onclick="registerBiometric()">🔐 Setup Biometrics</button>
-                <button type="button" class="btn-link" style="color:var(--danger)" onclick="disableBiometric()">❌ Disable Biometrics</button>
+            <!-- Profile Menu List -->
+            <div id="profileMenuList" class="menu-list">
+                <button type="button" class="menu-item" onclick="enterPasswordChangeMode()">🔑 Change Master Password</button>
                 
-                <div id="cloudSettingsArea" style="margin-top: 15px;">
-                    <div id="googleConnectedView" class="hidden">
-                        <p id="googleUserLabel" class="sub-text" style="margin-bottom:8px; color:#10b981; font-size:0.85rem;">Connected to Google</p>
-                        <button type="button" class="btn-danger" style="margin-bottom:12px;" onclick="logoutGoogle()">🚪 Disconnect Google Account</button>
-                    </div>
-                </div>
+                <button type="button" class="menu-item" id="bioSetupBtn" onclick="registerBiometric()">🔐 Enable Biometrics</button>
+                <button type="button" class="menu-item danger hidden" id="bioDisableBtn" onclick="disableBiometric()">❌ Disable Biometrics</button>
+                
+                <button type="button" class="menu-item" onclick="generateAndSaveRK()">🛡️ Generate Recovery Key</button>
+                <button type="button" class="menu-item" onclick="exportData()">📦 Backup to Local File</button>
+
+                <hr style="border-color: var(--glass-border); width: 100%; margin: 10px 0;">
+
+                <button type="button" class="menu-item" id="googleLinkBtn" onclick="connectDrive()">☁️ Link Google Account</button>
+                <button type="button" class="menu-item hidden" id="googleSyncBtn" onclick="syncToCloud(true)">🔄 Sync to Google Drive</button>
+                <button type="button" class="menu-item danger hidden" id="googleUnlinkBtn" onclick="logoutGoogle()">🚪 Unlink Google Account</button>
+
+                <hr style="border-color: var(--glass-border); width: 100%; margin: 10px 0;">
+
+                <button type="button" class="menu-item danger" onclick="handleVaultLogout()">🔒 Logout & Lock Vault</button>
             </div>
+
+            <!-- Isolated Change Password View (Only visible when changing password) -->
+            <div id="passChangeView" class="hidden">
+                <h3 style="margin-bottom: 1.5rem; color: var(--primary-orange);">Change Password</h3>
+                
+                <div class="pwd-wrapper">
+                    <input type="password" id="settCurrPass" placeholder="Current Master Password">
+                    <button type="button" class="pwd-toggle" onclick="togglePwd('settCurrPass', this)" tabindex="-1">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+                
+                <div class="pwd-wrapper">
+                    <input type="password" id="settNewPass" placeholder="New Master Password">
+                    <button type="button" class="pwd-toggle" onclick="togglePwd('settNewPass', this)" tabindex="-1">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+
+                <div class="pwd-wrapper">
+                    <input type="password" id="settConfirmPass" placeholder="Confirm New Master Password">
+                    <button type="button" class="pwd-toggle" onclick="togglePwd('settConfirmPass', this)" tabindex="-1">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+
+                <button type="button" class="btn-main" onclick="changePassword()">Save New Password</button>
+                <button type="button" class="btn-ghost" onclick="exitPasswordChangeMode()">Cancel</button>
+            </div>
+            
         </div>
 
         <!-- Add / Edit Form -->
@@ -675,8 +644,9 @@
         if (window.google) {
             codeClient = google.accounts.oauth2.initCodeClient({
                 client_id: GOOGLE_CLIENT_ID,
-                scope: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+                scope: "https://www.googleapis.com/auth/drive.file openid email profile",
                 ux_mode: "popup",
+                prompt: "consent",
                 callback: async (response) => {
                     if (response.error) {
                         showToast("Google connection failed");
@@ -701,7 +671,6 @@
                         showToast("Google Linked!");
                         updateProfileUI();
 
-                        // Automatically attempt restore if unlocking or in empty vault
                         await restoreFromCloud(true);
                     } catch (err) {
                         alert("Google Authentication Error: " + err.message);
@@ -751,50 +720,89 @@
         const initial = email ? email.charAt(0).toUpperCase() : name.charAt(0).toUpperCase();
 
         const topAvatar = document.getElementById("topProfileAvatar");
-        const modalAvatar = document.getElementById("modalAvatar");
-        const modalName = document.getElementById("modalUserName");
-        const modalEmail = document.getElementById("modalUserEmail");
-        const googleBtn = document.getElementById("googleMenuBtn");
+        const settingsAvatar = document.getElementById("settingsAvatar");
+        const settingsName = document.getElementById("settingsUserName");
+        const settingsEmail = document.getElementById("settingsUserEmail");
         
-        const connectedView = document.getElementById("googleConnectedView");
-        const userLabel = document.getElementById("googleUserLabel");
+        const googleLinkBtn = document.getElementById("googleLinkBtn");
+        const googleSyncBtn = document.getElementById("googleSyncBtn");
+        const googleUnlinkBtn = document.getElementById("googleUnlinkBtn");
 
         if (topAvatar) topAvatar.innerText = initial;
-        if (modalAvatar) modalAvatar.innerText = initial;
-        if (modalName) modalName.innerText = name;
-        if (modalEmail) modalEmail.innerText = email || "Offline Mode (Local Storage Only)";
+        if (settingsAvatar) settingsAvatar.innerText = initial;
+        if (settingsName) settingsName.innerText = name;
+        if (settingsEmail) settingsEmail.innerText = email || "Offline Mode (Local Storage Only)";
 
-        if (googleBtn) {
-            if (email) {
-                googleBtn.innerText = "🚪 Unlink Google Account";
-                googleBtn.classList.add("danger");
-                if (connectedView) connectedView.classList.remove("hidden");
-                if (userLabel) userLabel.innerText = `✅ Linked: ${email}`;
-            } else {
-                googleBtn.innerText = "☁️ Link Google Account";
-                googleBtn.classList.remove("danger");
-                if (connectedView) connectedView.classList.add("hidden");
-            }
-        }
-    }
-
-    function toggleProfileMenu() {
-        const modal = document.getElementById("profileModal");
-        modal.classList.toggle("hidden");
-    }
-
-    function closeProfileMenu(e) {
-        document.getElementById("profileModal").classList.add("hidden");
-    }
-
-    function toggleGoogleConnection() {
-        closeProfileMenu();
-        const userId = localStorage.getItem("vault_user_id");
-        if (userId) {
-            logoutGoogle();
+        if (email) {
+            if (googleLinkBtn) googleLinkBtn.classList.add("hidden");
+            if (googleSyncBtn) googleSyncBtn.classList.remove("hidden");
+            if (googleUnlinkBtn) googleUnlinkBtn.classList.remove("hidden");
         } else {
-            connectDrive();
+            if (googleLinkBtn) googleLinkBtn.classList.remove("hidden");
+            if (googleSyncBtn) googleSyncBtn.classList.add("hidden");
+            if (googleUnlinkBtn) googleUnlinkBtn.classList.add("hidden");
         }
+        updateBiometricUI();
+    }
+
+    function openProfileSettings() {
+        resetPasswordIcons();
+        exitPasswordChangeMode();
+        
+        // Hide Main Stuff
+        document.getElementById('cardListView').classList.add('hidden');
+        document.getElementById('cardDisplay').classList.add('hidden');
+        document.getElementById('actionBtn').classList.add('hidden');
+        document.getElementById('addForm').classList.add('hidden');
+        
+        // Show Full Screen Profile View
+        document.getElementById('profileSettingsView').classList.remove('hidden');
+        
+        // Update Top Bar
+        document.getElementById('topProfileAvatar').classList.add('hidden');
+        document.getElementById('settingsBackBtn').classList.remove('hidden');
+        document.getElementById('topBarTitle').innerText = "Settings";
+
+        updateProfileUI();
+    }
+
+    function closeProfileSettings() {
+        resetPasswordIcons();
+        document.getElementById('profileSettingsView').classList.add('hidden');
+        
+        // Restore Top Bar
+        document.getElementById('topProfileAvatar').classList.remove('hidden');
+        document.getElementById('settingsBackBtn').classList.add('hidden');
+        document.getElementById('topBarTitle').innerText = "My Vault";
+        
+        const id = document.getElementById('cardSelector').value;
+        if (id) {
+            handleSelection();
+        } else {
+            document.getElementById('cardListView').classList.remove('hidden');
+            document.getElementById('actionBtn').classList.remove('hidden');
+        }
+    }
+
+    function enterPasswordChangeMode() {
+        // Hide profile header and the menu list
+        document.querySelector('.profile-header').classList.add('hidden');
+        document.getElementById('profileMenuList').classList.add('hidden');
+        // Show password change view
+        document.getElementById('passChangeView').classList.remove('hidden');
+    }
+
+    function exitPasswordChangeMode() {
+        // Show profile header and the menu list
+        document.querySelector('.profile-header').classList.remove('hidden');
+        document.getElementById('profileMenuList').classList.remove('hidden');
+        // Hide password change view
+        document.getElementById('passChangeView').classList.add('hidden');
+        
+        document.getElementById('settCurrPass').value = "";
+        document.getElementById('settNewPass').value = "";
+        document.getElementById('settConfirmPass').value = "";
+        resetPasswordIcons();
     }
 
     function logoutGoogle() {
@@ -805,20 +813,6 @@
             updateProfileUI();
             showToast("Google Account Unlinked");
         }
-    }
-
-    // --- Full Universal Backup (Drive + Local File) --- //
-    async function triggerUniversalBackup() {
-        closeProfileMenu();
-        showToast("Starting full backup...");
-
-        const userId = localStorage.getItem("vault_user_id");
-        if (userId) {
-            await syncToCloud(false);
-        }
-
-        exportData();
-        showToast("Backup Complete (Drive & File) ✅");
     }
 
     function connectDrive() {
@@ -889,69 +883,12 @@
     }
 
     async function handleVaultLogout() {
-        closeProfileMenu();
         const userId = localStorage.getItem("vault_user_id");
         if (userId) {
             showToast("Syncing before lock...");
             await syncToCloud(false);
         }
         location.reload();
-    }
-
-    // --- Settings UI Navigation --- //
-    function openSettingsView() {
-        closeProfileMenu();
-        resetPasswordIcons();
-        exitPasswordChangeMode();
-        
-        // Hide Main Stuff
-        document.getElementById('cardListView').classList.add('hidden');
-        document.getElementById('cardDisplay').classList.add('hidden');
-        document.getElementById('actionBtn').classList.add('hidden');
-        document.getElementById('addForm').classList.add('hidden');
-        document.getElementById('settingsSection').classList.remove('hidden');
-        
-        // Update Top Bar
-        document.getElementById('topProfileAvatar').classList.add('hidden');
-        document.getElementById('settingsBackBtn').classList.remove('hidden');
-        document.getElementById('topBarTitle').innerText = "Settings";
-
-        updateBiometricUI();
-        updateProfileUI();
-    }
-
-    function closeSettingsView() {
-        resetPasswordIcons();
-        document.getElementById('settingsSection').classList.add('hidden');
-        
-        // Restore Top Bar
-        document.getElementById('topProfileAvatar').classList.remove('hidden');
-        document.getElementById('settingsBackBtn').classList.add('hidden');
-        document.getElementById('topBarTitle').innerText = "My Vault";
-        
-        const id = document.getElementById('cardSelector').value;
-        if (id) {
-            handleSelection();
-        } else {
-            document.getElementById('cardListView').classList.remove('hidden');
-            document.getElementById('actionBtn').classList.remove('hidden');
-        }
-    }
-
-    function enterPasswordChangeMode() {
-        document.getElementById('startChangePassBtn').classList.add('hidden');
-        document.getElementById('passChangeFields').classList.remove('hidden');
-        document.getElementById('generalSettingsGroup').classList.add('hidden');
-    }
-
-    function exitPasswordChangeMode() {
-        document.getElementById('startChangePassBtn').classList.remove('hidden');
-        document.getElementById('passChangeFields').classList.add('hidden');
-        document.getElementById('generalSettingsGroup').classList.remove('hidden');
-        document.getElementById('settCurrPass').value = "";
-        document.getElementById('settNewPass').value = "";
-        document.getElementById('settConfirmPass').value = "";
-        resetPasswordIcons();
     }
 
     function changePassword() {
@@ -976,7 +913,7 @@
         
         alert("Master password updated successfully for local storage!");
         exitPasswordChangeMode();
-        closeSettingsView();
+        closeProfileSettings();
     }
 
     function generateAndSaveRK() {
@@ -985,9 +922,8 @@
         let r = ""; const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         for(let i=0; i<16; i++) { if(i>0 && i%4===0) r+="-"; r+=c.charAt(Math.floor(Math.random()*c.length)); }
         localStorage.setItem('vault_rk', CryptoJS.SHA256(r).toString());
-        document.getElementById('rkVal').innerText = r;
-        document.getElementById('rkBox').classList.remove('hidden');
-        alert("Recovery Key Generated!");
+        
+        alert("Recovery Key Generated:\n\n" + r + "\n\nStore this safely!");
     }
 
     function exportData() {
@@ -1412,7 +1348,7 @@
         if(!id) { 
             display.innerHTML = ""; 
             if(listView) listView.classList.remove('hidden');
-            if(fab && document.getElementById('settingsSection').classList.contains('hidden')) fab.classList.remove('hidden');
+            if(fab && document.getElementById('profileSettingsView').classList.contains('hidden')) fab.classList.remove('hidden');
             return; 
         }
         
@@ -1579,8 +1515,8 @@
 
     function updateBiometricUI() {
         const bioUnlockBtn = document.getElementById("bioUnlockBtn");
-        const setupBtn = document.querySelector('button[onclick="registerBiometric()"]');
-        const disableBtn = document.querySelector('button[onclick="disableBiometric()"]');
+        const setupBtn = document.getElementById('bioSetupBtn');
+        const disableBtn = document.getElementById('bioDisableBtn');
         const enabled = localStorage.getItem("vault_bio_enabled") === "true";
 
         if (bioUnlockBtn) {
