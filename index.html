@@ -1,142 +1,1540 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Secure Card Vault - Biometric Only</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-<style>
-body { background:#0f172a; color:white; font-family:sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; }
-.container { text-align:center; max-width:400px; width:100%; }
-.btn { padding:15px; border:none; border-radius:10px; background:#f59e0b; width:100%; font-weight:bold; cursor:pointer; }
-.hidden { display:none; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Secure Card Vault</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="icon.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+        :root { 
+            --primary-orange: #f59e0b; 
+            --bg-dark: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            --text-white: #ffffff;
+            --text-dim: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --danger: #ef4444;
+        }
+
+        body { 
+            background: #0f172a;
+            background: var(--bg-dark);
+            color: var(--text-white);
+            font-family: 'Inter', -apple-system, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .container { 
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            text-align: center;
+            box-sizing: border-box;
+            min-height: 100vh;
+        }
+        
+        #onboarding, #unlockSection, #recoverySection, #restoreSection { margin-top: 8vh; }
+
+        h2, h3 { font-weight: 700; letter-spacing: -0.5px; margin-bottom: 1rem; }
+        .app-title { font-size: 2.2rem; }
+        .sub-text { color: var(--text-dim); font-size: 0.95rem; margin-bottom: 2rem; }
+
+        .bio-icon-wrapper { margin-bottom: 2rem; }
+        .bio-icon-circle {
+            width: 110px; height: 110px; border: 1.5px solid rgba(245, 158, 11, 0.4);
+            border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(245, 158, 11, 0.05); box-shadow: 0 0 30px rgba(245, 158, 11, 0.15); margin-bottom: 1rem;
+        }
+        .bio-icon svg { display: block; width: 60px; height: 60px; color: var(--primary-orange); filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6)); }
+        .bio-icon { color: var(--primary-orange); filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.4)); }
+
+        .btn-main {
+            background: var(--primary-orange); color: #000; border: none; padding: 1rem;
+            border-radius: 14px; width: 100%; font-size: 1rem; font-weight: 600;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            cursor: pointer; transition: 0.2s; margin-bottom: 10px;
+        }
+        .btn-main:active { transform: scale(0.97); }
+        
+        .btn-ghost, .btn-danger {
+            height: 36px; display: flex; align-items: center; justify-content: center;
+            padding: 0 0.8rem; border-radius: 8px; width: 100%; cursor: pointer;
+            font-weight: 500; font-size: 0.9rem; transition: 0.2s; box-sizing: border-box;
+        }
+        .btn-ghost { background: var(--glass); color: white; border: 1px solid var(--glass-border); }
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .btn-ghost:active { background: rgba(255, 255, 255, 0.1); transform: scale(0.97); }
+        .btn-danger:active { background: rgba(239, 68, 68, 0.2); transform: scale(0.97); }
+
+        .btn-link { background: none; border: none; color: var(--text-dim); margin-top: 1rem; font-size: 1rem; cursor: pointer; width: 100%; text-decoration: none; }
+
+        .fab {
+            position: fixed; bottom: 2rem; right: 2rem; width: 56px; height: 56px;
+            background: var(--primary-orange); color: #000; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 2.5rem;
+            font-weight: 300; line-height: 1; border: none; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            cursor: pointer; z-index: 1000; transition: 0.2s; padding-bottom: 4px;
+        }
+        .fab:active { transform: scale(0.92); }
+
+        .form-tabs {
+            display: flex; background: var(--glass); border-radius: 12px; margin-bottom: 1rem; padding: 4px;
+        }
+        .tab-btn {
+            flex: 1; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer;
+            color: var(--text-dim); font-weight: 600; font-size: 0.9rem; transition: 0.2s; border: none; background: transparent;
+        }
+        .tab-btn.active { background: var(--primary-orange); color: #000; }
+
+        input, select, textarea {
+            background: var(--glass); border: 1px solid var(--glass-border); color: white;
+            padding: 1rem; border-radius: 12px; width: 100%; box-sizing: border-box;
+            margin-bottom: 1rem; font-size: 1rem; outline: none; font-family: inherit;
+        }
+        input::placeholder, textarea::placeholder { color: #64748b; }
+        textarea { resize: none; min-height: 80px; }
+        
+        .pwd-wrapper { position: relative; width: 100%; margin-bottom: 1rem; }
+        .pwd-wrapper input { margin-bottom: 0; padding-right: 45px; }
+        .pwd-toggle { 
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: var(--text-dim); cursor: pointer;
+            padding: 4px; display: flex; align-items: center; justify-content: center; transition: 0.2s;
+        }
+        .pwd-toggle:active { transform: translateY(-50%) scale(0.9); }
+        .pwd-toggle:hover { color: var(--text-white); }
+        
+        .cred-group { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 1rem; }
+        .cred-group .pwd-wrapper, .cred-group select { margin-bottom: 0; }
+
+        .card-chip {
+            width: 45px; height: 35px; background: linear-gradient(135deg, #fceabb 0%, #fccd4d 50%, #f8b500 100%);
+            border-radius: 6px; margin-bottom: 15px; position: relative; overflow: hidden; border: 0.5px solid rgba(0,0,0,0.1);
+        }
+        .card-chip::before { content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(0,0,0,0.1); }
+        .card-chip::after { content: ''; position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: rgba(0,0,0,0.1); }
+
+        .credit-card {
+            width: 100%; aspect-ratio: 1.58 / 1; border-radius: 20px; padding: 24px; margin: 20px 0;
+            display: flex; flex-direction: column; position: relative; box-sizing: border-box;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5); overflow: hidden; text-align: left;
+        }
+        .credit-card::after { content: ''; position: absolute; inset: 0; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1); pointer-events: none; }
+        
+        .bank-card-visual {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            aspect-ratio: auto; min-height: 140px; justify-content: center; border: 1px solid var(--glass-border);
+        }
+
+        .card-number { font-family: 'Courier New', Courier, monospace; font-size: 1.25rem; letter-spacing: 2px; margin-top: 5px; white-space: nowrap; width: 100%; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        .card-header-top { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
+        .sub-type-top { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; font-weight: 600; margin-top: 5px; }
+
+        .card-footer-realistic { margin-top: auto; display: flex; flex-direction: column; gap: 12px; width: 65%; }
+        .footer-row { display: flex; gap: 25px; }
+        .footer-item { display: flex; flex-direction: column; text-align: left; }
+        .footer-item .label { font-size: 0.5rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 2px; letter-spacing: 0.5px; }
+        .footer-item .val { font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+
+        .hidden { display: none !important; }
+        
+        .unlock-row { display: flex; gap: 12px; align-items: center; width: 100%; }
+        #bioUnlockBtn { width: 60px; height: 50px; margin-bottom: 10px; flex-shrink: 0; display: flex; }
+        #bioUnlockBtn svg { width: 28px; height: 28px; }
+
+        #toast {
+            position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: var(--primary-orange); color: black;
+            padding: 0.6rem 1.2rem; border-radius: 20px; font-weight: 600; opacity: 0; transition: 0.3s; z-index: 1000;
+        }
+
+        .status-footer { margin-top: 2rem; font-size: 0.75rem; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .contactless-svg { width: 20px; height: 20px; opacity: 0.8; margin-left: 10px; color: white; }
+        .network-logo-container { position: absolute; bottom: 22px; right: 24px; text-align: right; max-width: 30%; }
+        .network-main-name { font-size: 1.4rem; font-weight: 900; font-style: italic; letter-spacing: -0.5px; line-height: 1; }
+        
+        * { -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+        input, textarea { -webkit-user-select: text; user-select: text; }
+
+        .bank-group-title {
+            font-size: 0.8rem; color: var(--primary-orange); text-transform: uppercase;
+            letter-spacing: 1.5px; margin: 1.5rem 0 0.5rem 0; text-align: left;
+            border-bottom: 1px solid rgba(245, 158, 11, 0.3); padding-bottom: 5px; font-weight: 700;
+        }
+        .card-list-item {
+            background: var(--glass); border: 1px solid var(--glass-border); padding: 1rem;
+            border-radius: 12px; margin-bottom: 10px; text-align: left; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.2s;
+        }
+        .card-list-item:active { background: rgba(255, 255, 255, 0.1); transform: scale(0.98); }
+
+        .top-action-bar {
+            position: sticky; top: 0; margin: -2rem -2rem 1.5rem -2rem; padding: 15px 2rem;
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            z-index: 100; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .quick-actions-dock { display: flex; justify-content: space-around; margin: 20px 0; padding: 0 10px; }
+        .quick-action-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; border: none; background: none; color: var(--text-dim); font-size: 0.75rem; font-weight: 600; transition: 0.2s; }
+        .quick-action-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--glass); border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center; color: white; transition: 0.2s; }
+        .quick-action-btn:active .quick-action-icon { background: rgba(255,255,255,0.1); transform: scale(0.92); }
+        .qa-danger .quick-action-icon { color: var(--danger); background: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.2); }
+
+        .details-widget { background: var(--glass); border-radius: 16px; border: 1px solid var(--glass-border); margin-bottom: 24px; overflow: hidden; text-align: left; }
+        .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-row:active { background: rgba(255,255,255,0.05); }
+        .detail-label { color: var(--text-dim); font-size: 0.85rem; font-weight: 500; }
+        .detail-value { color: white; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+        .mono { font-family: 'Courier New', Courier, monospace; letter-spacing: 0.5px; }
+
+        .secure-lock { display: flex; align-items: center; gap: 5px; color: var(--primary-orange); font-size: 0.8rem; }
+        
+        .notes-widget { background: var(--glass); border-radius: 16px; border: 1px solid var(--glass-border); margin-bottom: 24px; text-align: left; padding: 16px; cursor: pointer; transition: background 0.2s; }
+        .notes-widget:active { background: rgba(255,255,255,0.05); }
+        .notes-title { color: var(--primary-orange); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .notes-content { color: white; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; }
+        .notes-empty { color: var(--text-dim); font-style: italic; font-size: 0.85rem; text-align: center; padding: 10px 0; }
+    </style>
 </head>
 <body>
 
+<div id="toast">Copied!</div>
+
 <div class="container">
+    <input type="file" id="importFile" class="hidden" onchange="importData(this)" accept=".txt">
+    
+    <div id="onboarding" class="hidden">
+        <div id="step1">
+            <div class="bio-icon-wrapper"><div class="bio-icon-circle"><span class="bio-icon">👋</span></div></div>
+            <h3>Secure Vault</h3>
+            <p class="sub-text">Encryption at your fingertips. All data stays on your device.</p>
+            <button type="button" class="btn-main" onclick="nextStep(2)">Get Started</button>
+            <button type="button" class="btn-ghost" onclick="connectDrive()" style="margin-top:12px; color:var(--primary-orange); border-color:var(--primary-orange);">
+                ☁️ Link & Restore from Google
+            </button>
+            <button type="button" class="btn-link" onclick="document.getElementById('importFile').click()" style="margin-top:10px;">
+                📂 Restore from File Backup
+            </button>
+        </div>
 
-<h2>Card Vault</h2>
-<p>Biometric Secure Access</p>
+        <div id="step2" class="hidden">
+            <h3>Set Master Password</h3>
+            <p class="sub-text">This unlocks your vault.</p>
+            <div class="pwd-wrapper">
+                <input type="password" id="setupPass" placeholder="Enter Password">
+                <button type="button" class="pwd-toggle" onclick="togglePwd('setupPass', this)" tabindex="-1">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+            </div>
+            <div class="pwd-wrapper">
+                <input type="password" id="setupPass2" placeholder="Confirm Password">
+                <button type="button" class="pwd-toggle" onclick="togglePwd('setupPass2', this)" tabindex="-1">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+            </div>
+            <button type="button" class="btn-main" onclick="createVaultStep()">Continue</button>
+        </div>
+        <div id="step3" class="hidden">
+            <div class="bio-icon-wrapper"><div class="bio-icon-circle"><span class="bio-icon">🧬</span></div></div>
+            <h3>Biometrics</h3>
+            <p class="sub-text">Enable fingerprint access?</p>
+            <button type="button" class="btn-main" onclick="enableBioSetup()">Enable Now</button>
+            <button type="button" class="btn-link" onclick="finishSetup()">Skip</button>
+        </div>
+    </div>
 
-<button id="bioUnlockBtn" class="btn">🔐 Unlock with Biometrics</button>
+    <div id="unlockSection" class="hidden">
+        <div class="bio-icon-wrapper">
+            <div class="bio-icon-circle">
+                <span class="bio-icon">
+                    <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12"/><path d="M5 12C5 8.13401 8.13401 5 12 5C15.866 5 19 8.13401 19 12"/><path d="M8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12"/><path d="M12 11V13"/><path d="M12 17V17.01"/><path d="M11 22H13"/><path d="M15 21H17"/><path d="M7 21H9"/></svg>
+                </span>
+            </div>
+        </div>
+        <h2 class="app-title">Card Vault</h2>
+        <p class="sub-text">Securely access your cards</p>
 
-<div id="mainContent" class="hidden">
-    <h3>Vault Unlocked ✅</h3>
-    <p>Your secure data is now accessible.</p>
-</div>
+        <div class="pwd-wrapper">
+            <input type="password" id="masterPass" placeholder="••••••••">
+            <button type="button" class="pwd-toggle" onclick="togglePwd('masterPass', this)" tabindex="-1">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+        </div>
 
+        <div class="unlock-row">
+            <button type="button" class="btn-main" onclick="unlockVault()" style="margin-bottom: 10px;">
+                Unlock Vault
+            </button>
+            <button type="button" id="bioUnlockBtn" class="btn-main hidden" onclick="unlockWithBiometric()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12"/><path d="M5 12C5 8.13401 8.13401 5 12 5C15.866 5 19 8.13401 19 12"/><path d="M8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12"/><path d="M12 11V13"/><path d="M12 17V17.01"/></svg>
+            </button>
+        </div>
+
+        <button type="button" id="forgotLink" class="btn-link" onclick="showRecovery()">Forgot Password?</button>
+
+        <div class="status-footer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Stored locally on this device only
+        </div>
+    </div>
+
+    <div id="restoreSection" class="hidden">
+        <h3>Restore Backup</h3>
+        <p class="sub-text">Enter the password used when this backup was created.</p>
+        <div class="pwd-wrapper">
+            <input type="password" id="restorePass" placeholder="Backup Password">
+            <button type="button" class="pwd-toggle" onclick="togglePwd('restorePass', this)" tabindex="-1">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+        </div>
+        <button type="button" class="btn-main" onclick="confirmRestore()">Restore Data</button>
+        <button type="button" class="btn-link" onclick="cancelRestore()">Cancel</button>
+    </div>
+
+    <div id="recoverySection" class="hidden">
+        <h3>Reset Vault</h3>
+        <p class="sub-text">Enter your 16-character Recovery Key:</p>
+        <input type="text" id="rkInput" placeholder="XXXX-XXXX-XXXX-XXXX">
+        <button type="button" class="btn-main" onclick="handleRecovery()">Reset Access</button>
+        <button type="button" class="btn-link" onclick="location.reload()">Cancel</button>
+    </div>
+
+    <div id="mainContent" class="hidden">
+        
+        <div class="top-action-bar">
+            <h2 style="margin:0; font-size:1.15rem; color:var(--text-white); font-weight:700;">My Vault</h2>
+            <div style="display:flex; gap:8px;">
+                <button type="button" id="topBackupBtn" class="btn-ghost" style="width:36px; height:36px; padding:0; font-size:1.1rem;" onclick="exportData()" title="Local Backup">📦</button>
+                <button type="button" class="btn-ghost" style="width:36px; height:36px; padding:0; font-size:1.1rem;" onclick="toggleSettings()" title="Settings">⚙️</button>
+                <button type="button" class="btn-danger" style="width:36px; height:36px; padding:0; font-size:1.1rem;" onclick="handleVaultLogout()" title="Lock Vault">🔒</button>
+            </div>
+        </div>
+
+        <input type="hidden" id="cardSelector" value="">
+        <div id="cardListView"></div>
+
+        <div id="cardDisplay"></div>
+        
+        <button type="button" class="fab" id="actionBtn" onclick="handleMainAction()">+</button>
+
+        <div id="settingsSection" class="hidden">
+            <h3>Security Settings</h3>
+
+            <!-- Collapsible Change Password Box -->
+            <button type="button" id="togglePassFieldsBtn" class="btn-ghost" style="margin-bottom:12px;" onclick="togglePasswordChangeFields()">
+                🔑 Change Master Password
+            </button>
+            
+            <div id="passChangeArea" class="hidden">
+                <div class="pwd-wrapper">
+                    <input type="password" id="settCurrPass" placeholder="Current Password">
+                    <button type="button" class="pwd-toggle" onclick="togglePwd('settCurrPass', this)" tabindex="-1">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+                
+                <div class="pwd-wrapper">
+                    <input type="password" id="settNewPass" placeholder="New Password">
+                    <button type="button" class="pwd-toggle" onclick="togglePwd('settNewPass', this)" tabindex="-1">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+                <button type="button" class="btn-main" onclick="changePassword()">Save New Password</button>
+            </div>
+
+            <!-- Dynamic Cloud / Local Storage Section -->
+            <div id="cloudSettingsArea" style="margin-top: 15px;">
+                <div id="googleConnectedView" class="hidden">
+                    <p id="googleUserLabel" class="sub-text" style="margin-bottom:8px; color:#10b981; font-size:0.85rem;">Connected to Google</p>
+                    <button type="button" class="btn-ghost" style="margin-bottom:8px; border-color:var(--primary-orange); color:var(--primary-orange);" onclick="syncToCloud(true)">☁️ Sync to Google Drive Now</button>
+                    <button type="button" class="btn-danger" style="margin-bottom:12px;" onclick="logoutGoogle()">🚪 Disconnect Google Account</button>
+                </div>
+                <div id="googleDisconnectedView">
+                    <button type="button" class="btn-ghost" style="margin-bottom:8px; border-color:var(--primary-orange); color:var(--primary-orange);" onclick="connectDrive()">☁️ Link Google Account</button>
+                    <button type="button" class="btn-ghost" style="margin-bottom:12px;" onclick="exportData()">📦 Download Local File Backup</button>
+                </div>
+            </div>
+
+            <div id="rkBox" class="hidden">
+                <div class="rk-display" id="rkVal"></div>
+            </div>
+            <button type="button" class="btn-link" onclick="generateAndSaveRK()" id="rkBtn">Generate Recovery Key</button>
+            <button type="button" class="btn-link" onclick="registerBiometric()">🔐 Setup Biometrics</button>
+            <button type="button" class="btn-link" style="color:var(--danger)" onclick="disableBiometric()">❌ Disable Biometrics</button>
+            <button type="button" class="btn-link" onclick="toggleSettings()">Close Settings</button>
+        </div>
+
+        <div id="addForm" class="hidden">
+            <div class="form-tabs">
+                <button type="button" class="tab-btn active" id="tabCard" onclick="switchFormTab('card')">💳 Card</button>
+                <button type="button" class="tab-btn" id="tabBank" onclick="switchFormTab('netbanking')">🏦 NetBanking</button>
+            </div>
+            
+            <input type="hidden" id="editId">
+            <input type="hidden" id="itemType" value="card">
+
+            <div id="cardFields">
+                <input type="text" id="nick" placeholder="Nickname (e.g., HDFC Millennia)">
+                <select id="type">
+                    <optgroup label="Visa">
+                        <option value="Visa Classic">Visa Classic</option>
+                        <option value="Visa Platinum">Visa Platinum</option>
+                        <option value="Visa Signature">Visa Signature</option>
+                        <option value="Visa Infinite">Visa Infinite</option>
+                    </optgroup>
+                    <optgroup label="Mastercard">
+                        <option value="Mastercard Standard">Mastercard Standard</option>
+                        <option value="Mastercard World">Mastercard World</option>
+                        <option value="Mastercard World Elite">Mastercard World Elite</option>
+                    </optgroup>
+                    <optgroup label="RuPay">
+                        <option value="RuPay Classic">RuPay Classic</option>
+                        <option value="RuPay Platinum">RuPay Platinum</option>
+                        <option value="RuPay Select">RuPay Select</option>
+                    </optgroup>
+                    <optgroup label="American Express">
+                        <option value="Amex Platinum">Amex Platinum</option>
+                    </optgroup>
+                </select>
+                <input type="tel" id="num" placeholder="Card Number">
+                <input type="text" id="name" placeholder="Cardholder Name">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <input type="tel" id="exp" placeholder="MM/YY">
+                    <input type="tel" id="cvv" placeholder="CVV">
+                </div>
+            </div>
+
+            <div id="bankFields" class="hidden">
+                <input type="text" id="bankNick" placeholder="Bank Name (e.g., HDFC Bank)">
+                <input type="text" id="userId" placeholder="User ID / Customer ID">
+                
+                <div class="cred-group">
+                    <div class="pwd-wrapper">
+                        <input type="password" id="loginPass" placeholder="Login Password">
+                        <button type="button" class="pwd-toggle" onclick="togglePwd('loginPass', this)" tabindex="-1">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+                    <select id="loginExp">
+                        <option value="0">No Expiry</option>
+                        <option value="1">1 Month</option>
+                        <option value="2">2 Months</option>
+                        <option value="3">3 Months</option>
+                        <option value="6">6 Months</option>
+                        <option value="12">1 Year</option>
+                    </select>
+                </div>
+                
+                <div class="cred-group">
+                    <div class="pwd-wrapper">
+                        <input type="password" id="profilePass" placeholder="Profile Password">
+                        <button type="button" class="pwd-toggle" onclick="togglePwd('profilePass', this)" tabindex="-1">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+                    <select id="profileExp">
+                        <option value="0">No Expiry</option>
+                        <option value="1">1 Month</option>
+                        <option value="2">2 Months</option>
+                        <option value="3">3 Months</option>
+                        <option value="6">6 Months</option>
+                        <option value="12">1 Year</option>
+                    </select>
+                </div>
+
+                <div class="cred-group">
+                    <div class="pwd-wrapper">
+                        <input type="password" id="mpin" placeholder="MPIN (Mobile App)">
+                        <button type="button" class="pwd-toggle" onclick="togglePwd('mpin', this)" tabindex="-1">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+                    <select id="mpinExp">
+                        <option value="0">No Expiry</option>
+                        <option value="1">1 Month</option>
+                        <option value="2">2 Months</option>
+                        <option value="3">3 Months</option>
+                        <option value="6">6 Months</option>
+                        <option value="12">1 Year</option>
+                    </select>
+                </div>
+                
+                <input type="text" id="cif" placeholder="CIF Number (Optional)">
+            </div>
+            
+            <textarea id="notes" placeholder="Secure Notes (e.g., ATM PIN, Support numbers)"></textarea>
+
+            <button type="button" class="btn-main" onclick="saveItem()">Save Securely</button>
+            <button type="button" class="btn-ghost" onclick="cancelForm()">Cancel</button>
+        </div>
+
+    </div>
 </div>
 
 <script>
+    let MASTER_KEY = "";
+    let pendingRestoreData = null;
+    const BACKEND_URL = "https://vault-backend.oprasannak.workers.dev";
+    const GOOGLE_CLIENT_ID = "455353267035-tvggeucvch4scohdpp1bucugkaeb5a2g.apps.googleusercontent.com";
+    let codeClient = null;
 
-let MASTER_KEY = "";
-
-// ===== Helpers =====
-function bufferToBase64(buffer) {
-    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
-}
-
-function base64ToBuffer(base64) {
-    return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-}
-
-function randomChallenge() {
-    return Uint8Array.from(window.crypto.getRandomValues(new Uint8Array(32)));
-}
-
-// ===== Register Biometric (run once manually if needed) =====
-async function registerBiometric() {
-
-    const challenge = randomChallenge();
-
-    const publicKey = {
-        challenge,
-        rp: { name: "Secure Card Vault" },
-        user: {
-            id: randomChallenge(),
-            name: "vault-user",
-            displayName: "Vault User"
-        },
-        pubKeyCredParams: [{ type: "public-key", alg: -7 }],
-        authenticatorSelection: {
-            authenticatorAttachment: "platform",
-            userVerification: "required"
-        },
-        timeout: 60000,
-        attestation: "none"
-    };
-
-    const credential = await navigator.credentials.create({ publicKey });
-
-    const credId = bufferToBase64(credential.rawId);
-    localStorage.setItem("vault_bio_id", credId);
-    localStorage.setItem("vault_bio_enabled", "true");
-
-    // Create hidden master key (generated once)
-    MASTER_KEY = "AUTO_GENERATED_KEY_" + Date.now();
-
-    const deviceKey = bufferToBase64(randomChallenge());
-    localStorage.setItem("vault_device_key", deviceKey);
-
-    const encryptedMaster = CryptoJS.AES.encrypt(MASTER_KEY, deviceKey).toString();
-    localStorage.setItem("vault_master_enc", encryptedMaster);
-
-    alert("Biometric setup completed!");
-}
-
-// ===== Unlock With Biometrics =====
-async function unlockWithBiometric() {
-
-    const enabled = localStorage.getItem("vault_bio_enabled");
-    const storedId = localStorage.getItem("vault_bio_id");
-
-    if (!enabled || !storedId) {
-        alert("Biometrics not setup. Initializing...");
-        await registerBiometric();
-        return unlockWithBiometric();
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.opacity = "1";
+        setTimeout(() => t.style.opacity = "0", 2000);
     }
 
-    const challenge = randomChallenge();
+    function copy(text, msg = "Copied!") {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => showToast(msg)).catch(() => showToast("Failed to copy"));
+        } else {
+            showToast(msg);
+        }
+    }
+    
+    function togglePwd(inputId, btnEl) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+            input.type = "text";
+            btnEl.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+        } else {
+            input.type = "password";
+            btnEl.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+        }
+    }
 
-    const publicKey = {
-        challenge,
-        allowCredentials: [{
-            id: base64ToBuffer(storedId),
-            type: "public-key",
-            transports: ["internal"]
-        }],
-        userVerification: "required",
-        timeout: 60000
-    };
+    function getExpiryString(timestamp, months) {
+        if (!timestamp || !months || months === "0") return null;
+        const d = new Date(timestamp);
+        d.setMonth(d.getMonth() + parseInt(months));
+        
+        const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = mNames[d.getMonth()];
+        const year = d.getFullYear();
+        
+        return `${day}-${month}-${year}`;
+    }
 
-    try {
-        await navigator.credentials.get({ publicKey });
+    function nextStep(n){
+        document.getElementById("step1").classList.add("hidden");
+        document.getElementById("step2").classList.add("hidden");
+        document.getElementById("step3").classList.add("hidden");
+        document.getElementById("step"+n).classList.remove("hidden");
+    }
 
-        const deviceKey = localStorage.getItem("vault_device_key");
-        const encryptedMaster = localStorage.getItem("vault_master_enc");
+    function createVaultStep(){
+        const p1=document.getElementById("setupPass").value;
+        const p2=document.getElementById("setupPass2").value;
 
-        const decryptedMaster = CryptoJS.AES.decrypt(encryptedMaster, deviceKey)
-            .toString(CryptoJS.enc.Utf8);
+        if(p1.length<4) return alert("Password must be at least 4 characters");
+        if(p1!==p2) return alert("Passwords do not match");
 
-        MASTER_KEY = decryptedMaster;
+        MASTER_KEY=p1;
+        localStorage.setItem("vault_hash", CryptoJS.SHA256(p1).toString());
+        nextStep(3);
+    }
 
+    async function enableBioSetup(){
+        try{
+            await registerBiometric();
+            finishSetup();
+        }catch(e){
+            alert("Biometric setup failed.");
+            finishSetup();
+        }
+    }
+
+    function finishSetup(){
+        document.getElementById("onboarding").classList.add("hidden");
+        document.getElementById("unlockSection").classList.add("hidden");
         document.getElementById("mainContent").classList.remove("hidden");
-
-    } catch (err) {
-        alert("Biometric verification failed.");
+        updateDropdown();
+        updateSettingsSyncUI();
     }
-}
 
-// ===== UI Events =====
-document.getElementById("bioUnlockBtn").addEventListener("click", unlockWithBiometric);
+    // Input Formatters
+    document.getElementById('num').addEventListener('input', e => {
+        let v = e.target.value.replace(/\D/g, '').match(/.{1,4}/g);
+        e.target.value = v ? v.join(' ') : '';
+    });
+    document.getElementById('exp').addEventListener('input', e => {
+        let v = e.target.value.replace(/\D/g, '');
+        if (v.length >= 2) {
+            let m = parseInt(v.substring(0, 2));
+            if (m > 12) v = '12' + v.substring(2);
+            if (m === 0) v = '01' + v.substring(2);
+        }
+        e.target.value = v.length > 2 ? v.substring(0, 2) + '/' + v.substring(2, 4) : v;
+    });
 
-// Auto-trigger biometric on load
-window.addEventListener("load", () => {
-    unlockWithBiometric();
-});
+    window.addEventListener("load", () => {
+        // Initialize Google Identity Services
+        if (window.google) {
+            codeClient = google.accounts.oauth2.initCodeClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+                ux_mode: "popup",
+                callback: async (response) => {
+                    if (response.error) {
+                        showToast("Authentication failed");
+                        return;
+                    }
 
+                    showToast("Linking account...");
+                    try {
+                        const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ code: response.code, redirectUri: "postmessage" })
+                        });
+
+                        const data = await res.json();
+                        if (data.error) throw new Error(data.error);
+
+                        localStorage.setItem("vault_user_id", data.userId);
+                        if (data.email) localStorage.setItem("vault_user_email", data.email);
+
+                        showToast("Google Linked! Checking cloud backup...");
+                        updateSettingsSyncUI();
+
+                        // Automatically attempt cloud restore upon login
+                        await restoreFromCloud(true);
+                    } catch (err) {
+                        alert("Google Authentication Error: " + err.message);
+                    }
+                }
+            });
+        }
+
+        const hasVault = localStorage.getItem("vault_hash");
+        const bioEnabled = localStorage.getItem("vault_bio_enabled") === "true";
+
+        if (!hasVault) {
+            document.getElementById("unlockSection").classList.add("hidden");
+            document.getElementById("onboarding").classList.remove("hidden");
+        } else {
+            document.getElementById("unlockSection").classList.remove("hidden");
+            if (bioEnabled) {
+                document.getElementById("bioUnlockBtn").classList.remove("hidden");
+            } else {
+                document.getElementById("bioUnlockBtn").classList.add("hidden");
+            }
+        }
+        updateSettingsSyncUI();
+    });
+
+    function unlockVault() {
+        const pass = document.getElementById('masterPass').value;
+        const storedHash = localStorage.getItem('vault_hash');
+        if (!storedHash) {
+            MASTER_KEY = pass;
+            localStorage.setItem('vault_hash', CryptoJS.SHA256(pass).toString());
+            alert("Vault created! Visit Settings to generate your Recovery Key.");
+        } else {
+            if (CryptoJS.SHA256(pass).toString() !== storedHash) return alert("Wrong password!");
+            MASTER_KEY = pass;
+        }
+        document.getElementById('unlockSection').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+        updateDropdown();
+        updateSettingsSyncUI();
+    }
+
+    // --- GOOGLE & CLOUD SYNC LOGIC --- //
+    function connectDrive() {
+        if (!codeClient) return alert("Google services not ready. Please refresh.");
+        codeClient.requestCode();
+    }
+
+    function logoutGoogle() {
+        if (confirm("Disconnect Google Account from this vault? Automatic cloud sync will be paused.")) {
+            localStorage.removeItem("vault_user_id");
+            localStorage.removeItem("vault_user_email");
+            updateSettingsSyncUI();
+            showToast("Google Account Disconnected");
+        }
+    }
+
+    function updateSettingsSyncUI() {
+        const userId = localStorage.getItem("vault_user_id");
+        const userEmail = localStorage.getItem("vault_user_email");
+        const connectedView = document.getElementById("googleConnectedView");
+        const disconnectedView = document.getElementById("googleDisconnectedView");
+        const userLabel = document.getElementById("googleUserLabel");
+        const topBackupBtn = document.getElementById("topBackupBtn");
+
+        if (userId) {
+            if (connectedView) connectedView.classList.remove("hidden");
+            if (disconnectedView) disconnectedView.classList.add("hidden");
+            if (userLabel) userLabel.innerText = userEmail ? `✅ Linked: ${userEmail}` : "✅ Google Drive Active";
+            if (topBackupBtn) topBackupBtn.title = "Sync to Google Drive";
+        } else {
+            if (connectedView) connectedView.classList.add("hidden");
+            if (disconnectedView) disconnectedView.classList.remove("hidden");
+            if (topBackupBtn) topBackupBtn.title = "Backup to File";
+        }
+    }
+
+    async function syncToCloud(isManual = false) {
+        const userId = localStorage.getItem("vault_user_id");
+        if (!userId) return;
+
+        const encryptedData = localStorage.getItem('vault_data');
+        if (!encryptedData) return;
+
+        if (isManual) showToast("Syncing to Google Drive...");
+
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/drive/sync`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId, payload: encryptedData })
+            });
+
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+
+            if (isManual) showToast("Cloud Sync Complete! ☁️");
+        } catch (e) {
+            console.error("Sync error:", e);
+            if (isManual) alert("Cloud Sync Failed: " + e.message);
+        }
+    }
+
+    async function restoreFromCloud(isInitialAuto = false) {
+        const userId = localStorage.getItem("vault_user_id");
+        if (!userId) return;
+
+        showToast("Fetching cloud backup...");
+
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/drive/restore`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId })
+            });
+
+            const data = await res.json();
+            if (data.error) {
+                if (isInitialAuto) return showToast("No cloud backup found. Vault ready.");
+                throw new Error(data.error);
+            }
+
+            const payload = data.payload;
+            let pass = prompt("Cloud backup found! Enter your Master Password to decrypt:");
+            if (!pass) return showToast("Restore cancelled.");
+
+            try {
+                const testDecrypt = CryptoJS.AES.decrypt(payload, pass).toString(CryptoJS.enc.Utf8);
+                if (!testDecrypt) throw new Error("Invalid password");
+
+                localStorage.setItem('vault_data', payload);
+                localStorage.setItem('vault_hash', CryptoJS.SHA256(pass).toString());
+                MASTER_KEY = pass;
+
+                showToast("Vault Restored Successfully! ✅");
+                document.getElementById('onboarding').classList.add('hidden');
+                document.getElementById('unlockSection').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                updateDropdown();
+                updateSettingsSyncUI();
+            } catch (decErr) {
+                alert("Decryption failed. Incorrect Master Password.");
+            }
+        } catch (e) {
+            alert("Restore Error: " + e.message);
+        }
+    }
+
+    // Auto-sync on vault lock
+    async function handleVaultLogout() {
+        const userId = localStorage.getItem("vault_user_id");
+        if (userId) {
+            showToast("Syncing changes...");
+            await syncToCloud(false);
+        }
+        location.reload();
+    }
+
+    // --- FORM LOGIC ---
+    function switchFormTab(tab) {
+        document.getElementById('itemType').value = tab;
+        if(tab === 'card') {
+            document.getElementById('tabCard').classList.add('active');
+            document.getElementById('tabBank').classList.remove('active');
+            document.getElementById('cardFields').classList.remove('hidden');
+            document.getElementById('bankFields').classList.add('hidden');
+        } else {
+            document.getElementById('tabBank').classList.add('active');
+            document.getElementById('tabCard').classList.remove('active');
+            document.getElementById('bankFields').classList.remove('hidden');
+            document.getElementById('cardFields').classList.add('hidden');
+        }
+    }
+
+    function handleMainAction() { 
+        document.getElementById('cardSelector').value = ""; 
+        toggleAddForm(false); 
+    }
+    
+    function editCard(id) {
+        document.getElementById('cardSelector').value = id;
+        toggleAddForm(true);
+    }
+    
+    function resetPasswordIcons() {
+        document.querySelectorAll('.pwd-wrapper input').forEach(el => {
+            el.type = 'password';
+            if(el.nextElementSibling) {
+                el.nextElementSibling.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+            }
+        });
+    }
+
+    function cancelForm() {
+        resetPasswordIcons();
+        document.getElementById('addForm').classList.add('hidden');
+        const id = document.getElementById('cardSelector').value;
+        if (id) {
+            handleSelection(); 
+        } else {
+            document.getElementById('cardListView').classList.remove('hidden');
+            document.getElementById('actionBtn').classList.remove('hidden'); 
+        }
+    }
+
+    function toggleAddForm(isEdit = false) { 
+        const form = document.getElementById('addForm'); 
+        const listView = document.getElementById('cardListView');
+        const fab = document.getElementById('actionBtn');
+        const display = document.getElementById('cardDisplay');
+        const formTabs = document.querySelector('.form-tabs');
+        
+        resetPasswordIcons();
+        
+        form.classList.remove('hidden');
+        listView.classList.add('hidden');
+        display.classList.add('hidden');
+        fab.classList.add('hidden'); 
+        
+        if (isEdit === true) {
+            if (formTabs) formTabs.classList.add('hidden');
+
+            const id = document.getElementById('cardSelector').value;
+            const c = getCards().find(x => x.id == id);
+            document.getElementById('editId').value = c.id;
+            
+            const type = c.itemType || 'card';
+            switchFormTab(type);
+
+            if(type === 'card') {
+                ['nick','type','num','name','exp','cvv','notes'].forEach(k => {
+                    const el = document.getElementById(k);
+                    if (el) el.value = c[k] || '';
+                });
+            } else {
+                document.getElementById('bankNick').value = c.nick || '';
+                ['userId','loginPass','loginExp','profilePass','profileExp','mpin','mpinExp','cif','notes'].forEach(k => {
+                    const el = document.getElementById(k);
+                    if (el) {
+                        if (k.includes('Exp')) el.value = c[k] || '0';
+                        else el.value = c[k] || '';
+                    }
+                });
+            }
+        } else {
+            if (formTabs) formTabs.classList.remove('hidden');
+            
+            document.getElementById('editId').value = "";
+            switchFormTab('card');
+            ['nick','num','name','exp','cvv','bankNick','userId','loginPass','profilePass','mpin','cif','notes'].forEach(k => {
+                const el = document.getElementById(k);
+                if (el) el.value = "";
+            });
+            ['loginExp','profileExp','mpinExp'].forEach(k => {
+                const el = document.getElementById(k);
+                if (el) el.value = "0";
+            });
+        }
+    }
+
+    function saveItem() {
+        const editId = document.getElementById('editId').value;
+        const typeVal = document.getElementById('itemType').value;
+        let item = { 
+            id: editId ? parseInt(editId) : Date.now(), 
+            itemType: typeVal,
+            notes: document.getElementById('notes').value 
+        };
+
+        if(typeVal === 'card') {
+            item.nick = document.getElementById('nick').value;
+            item.type = document.getElementById('type').value;
+            item.num = document.getElementById('num').value;
+            item.name = document.getElementById('name').value;
+            item.exp = document.getElementById('exp').value;
+            item.cvv = document.getElementById('cvv').value;
+            if(!item.nick || !item.num || item.exp.length < 5) return alert("Fill required card info!");
+        } else {
+            item.nick = document.getElementById('bankNick').value;
+            item.userId = document.getElementById('userId').value;
+            
+            item.loginPass = document.getElementById('loginPass').value;
+            item.loginExp = document.getElementById('loginExp').value;
+            
+            item.profilePass = document.getElementById('profilePass').value;
+            item.profileExp = document.getElementById('profileExp').value;
+            
+            item.mpin = document.getElementById('mpin').value;
+            item.mpinExp = document.getElementById('mpinExp').value;
+            
+            item.cif = document.getElementById('cif').value;
+            
+            if(!item.nick || !item.userId) return alert("Bank Name and User ID are required!");
+
+            const existingItems = getCards();
+            let oldItem = editId ? existingItems.find(c => c.id == parseInt(editId)) : null;
+
+            item.loginUpdated = (oldItem && oldItem.loginPass === item.loginPass && oldItem.loginUpdated) ? oldItem.loginUpdated : Date.now();
+            item.profileUpdated = (oldItem && oldItem.profilePass === item.profilePass && oldItem.profileUpdated) ? oldItem.profileUpdated : Date.now();
+            item.mpinUpdated = (oldItem && oldItem.mpin === item.mpin && oldItem.mpinUpdated) ? oldItem.mpinUpdated : Date.now();
+        }
+        
+        let items = getCards();
+        if (editId) items[items.findIndex(c => c.id == editId)] = item;
+        else items.push(item);
+        
+        localStorage.setItem('vault_data', CryptoJS.AES.encrypt(JSON.stringify(items), MASTER_KEY).toString());
+        
+        resetPasswordIcons();
+        document.getElementById('addForm').classList.add('hidden');
+        updateDropdown();
+        document.getElementById('cardSelector').value = item.id;
+        handleSelection();
+
+        // Background auto-sync if connected
+        syncToCloud(false);
+    }
+
+    function getCards() { 
+        const d = localStorage.getItem('vault_data'); 
+        try { return d ? JSON.parse(CryptoJS.AES.decrypt(d, MASTER_KEY).toString(CryptoJS.enc.Utf8)) : []; } 
+        catch(e) { return []; } 
+    }
+
+    function updateDropdown() { 
+        const listView = document.getElementById('cardListView'); 
+        const items = getCards().sort((a,b)=>a.nick.localeCompare(b.nick)); 
+        
+        if (items.length === 0) {
+            listView.innerHTML = '<p class="sub-text" style="margin-top:20px;">No items saved yet.</p>';
+            return;
+        }
+
+        const groupedItems = {};
+        items.forEach(item => {
+            let bankName = "";
+            const nickStr = item.nick.trim();
+            if (nickStr.toLowerCase().startsWith("standard chartered")) {
+                bankName = "Standard Chartered";
+            } else {
+                bankName = nickStr.split(" ")[0]; 
+            }
+            bankName = bankName.charAt(0).toUpperCase() + bankName.slice(1);
+            if (!groupedItems[bankName]) groupedItems[bankName] = [];
+            groupedItems[bankName].push(item);
+        });
+
+        let html = '';
+        const sortedBanks = Object.keys(groupedItems).sort((a, b) => a.localeCompare(b));
+        
+        sortedBanks.forEach(bank => {
+            html += `<div class="bank-group-title">${bank}</div>`;
+            groupedItems[bank].forEach(item => {
+                const isBank = item.itemType === 'netbanking';
+                const iconSvg = isBank 
+                    ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary-orange)"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`
+                    : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary-orange)"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>`;
+                
+                const label = isBank ? `${item.nick} (NetBanking)` : item.nick;
+
+                html += `
+                <div class="card-list-item" onclick="selectCard(${item.id})">
+                    ${iconSvg}
+                    ${label}
+                </div>`;
+            });
+        });
+
+        listView.innerHTML = html; 
+    }
+
+    function selectCard(id) {
+        document.getElementById('cardSelector').value = id;
+        handleSelection();
+    }
+
+    function clearSelection() {
+        document.getElementById('cardSelector').value = "";
+        handleSelection();
+    }
+
+    async function secureActionAndCopy(text, label) {
+        if (!text) return showToast(`No ${label} saved`);
+
+        if (navigator.clipboard && window.ClipboardItem) {
+            try {
+                const item = new ClipboardItem({
+                    "text/plain": new Blob([text], { type: "text/plain" })
+                });
+
+                await navigator.clipboard.write([item]);
+                showToast(`${label} Copied!`);
+                return;
+            } catch (err) {
+                console.error("ClipboardItem copy failed:", err);
+            }
+        }
+        prompt(`Copy ${label} manually:`, text);
+    }
+
+    async function secureCopyAll(id) {
+        const item = getCards().find(c => c.id == id);
+        if (!item) return;
+
+        let dataString = "";
+        if (item.itemType === 'netbanking') {
+            dataString = `🏦 Bank: ${item.nick}\n👤 User ID: ${item.userId}`;
+            let lExp = getExpiryString(item.loginUpdated, item.loginExp);
+            if (item.loginPass) dataString += `\n🔑 Password: ${item.loginPass}${lExp ? ` (Exp: ${lExp})` : ''}`;
+            let pExp = getExpiryString(item.profileUpdated, item.profileExp);
+            if (item.profilePass) dataString += `\n🔐 Profile Pass: ${item.profilePass}${pExp ? ` (Exp: ${pExp})` : ''}`;
+            let mExp = getExpiryString(item.mpinUpdated, item.mpinExp);
+            if (item.mpin) dataString += `\n📱 MPIN: ${item.mpin}${mExp ? ` (Exp: ${mExp})` : ''}`;
+            if (item.cif) dataString += `\n📑 CIF: ${item.cif}`;
+            if (item.notes) dataString += `\n📝 Notes: ${item.notes}`;
+        } else {
+            dataString = `👤 Name: ${item.name}\n💳 Card: ${item.nick}\n🔢 Number: ${item.num}\n📅 Exp: ${item.exp}\n🔑 CVV: ${item.cvv}${item.notes ? '\n📝 Notes: ' + item.notes : ''}`;
+        }
+
+        if (navigator.clipboard && window.ClipboardItem) {
+            try {
+                const clipboardItem = new ClipboardItem({
+                    "text/plain": new Blob([dataString], { type: "text/plain" })
+                });
+                await navigator.clipboard.write([clipboardItem]);
+                showToast('All Details Copied!');
+                return;
+            } catch (err) {
+                console.error("Clipboard copy failed:", err);
+            }
+        }
+        prompt("Copy all details manually:", dataString);
+    }
+
+    async function secureShare(id) {
+        const item = getCards().find(c => c.id == id);
+        let dataString = "";
+        if (item.itemType === 'netbanking') {
+            dataString = `🏦 Bank: ${item.nick}\n👤 User ID: ${item.userId}`;
+            let lExp = getExpiryString(item.loginUpdated, item.loginExp);
+            if (item.loginPass) dataString += `\n🔑 Password: ${item.loginPass}${lExp ? ` (Exp: ${lExp})` : ''}`;
+            let pExp = getExpiryString(item.profileUpdated, item.profileExp);
+            if (item.profilePass) dataString += `\n🔐 Profile Pass: ${item.profilePass}${pExp ? ` (Exp: ${pExp})` : ''}`;
+            let mExp = getExpiryString(item.mpinUpdated, item.mpinExp);
+            if (item.mpin) dataString += `\n📱 MPIN: ${item.mpin}${mExp ? ` (Exp: ${mExp})` : ''}`;
+            if (item.cif) dataString += `\n📑 CIF: ${item.cif}`;
+            if (item.notes) dataString += `\n📝 Notes: ${item.notes}`;
+        } else {
+            dataString = `👤 Name: ${item.name}\n💳 Card: ${item.nick}\n🔢 Number: ${item.num}\n📅 Exp: ${item.exp}\n🔑 CVV: ${item.cvv}${item.notes ? '\n📝 Notes: ' + item.notes : ''}`;
+        }
+        
+        if (navigator.share) {
+            try { await navigator.share({ title: 'Secure Details', text: dataString }); } 
+            catch (err) { console.log("Share cancelled", err); }
+        } else {
+            try {
+                if (navigator.clipboard && window.ClipboardItem) {
+                    const clipboardItem = new ClipboardItem({
+                        "text/plain": Promise.resolve(new Blob([dataString], { type: "text/plain" }))
+                    });
+                    await navigator.clipboard.write([clipboardItem]);
+                    showToast("Details copied!");
+                } else {
+                    throw new Error("Clipboard fallback");
+                }
+            } catch (e) {
+                prompt("Copy details manually:", dataString);
+            }
+        }
+    }
+
+    function handleSelection() {
+        const id = document.getElementById('cardSelector').value;
+        const display = document.getElementById('cardDisplay');
+        const fab = document.getElementById('actionBtn');
+        const listView = document.getElementById('cardListView');
+
+        if(!id) { 
+            display.innerHTML = ""; 
+            if(listView) listView.classList.remove('hidden');
+            if(fab && document.getElementById('settingsSection').classList.contains('hidden')) fab.classList.remove('hidden');
+            return; 
+        }
+        
+        if(listView) listView.classList.add('hidden');
+        if(fab) fab.classList.add('hidden'); 
+        
+        const item = getCards().find(c => c.id == id);
+        if(!item) return clearSelection();
+        
+        let notesHtml = '';
+        if (item.notes && item.notes.trim() !== '') {
+            notesHtml = `
+            <div class="notes-widget" onclick="copy(\`${item.notes.replace(/`/g, '\\`')}\`, 'Notes Copied')" title="Tap to copy notes">
+                <div class="notes-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    Secure Notes
+                </div>
+                <div class="notes-content">${item.notes.replace(/\n/g, '<br>')}</div>
+            </div>`;
+        } else {
+            notesHtml = `
+            <div class="notes-widget" onclick="editCard(${item.id})">
+                <div class="notes-empty">No notes saved. Tap Edit to add extra info.</div>
+            </div>`;
+        }
+
+        const quickActionsHtml = `
+            <div class="quick-actions-dock">
+                <button type="button" class="quick-action-btn" onclick="secureCopyAll(${item.id})">
+                    <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div>
+                    Copy
+                </button>
+                <button type="button" class="quick-action-btn" onclick="secureShare(${item.id})">
+                    <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg></div>
+                    Share
+                </button>
+                <button type="button" class="quick-action-btn" onclick="editCard(${item.id})">
+                    <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></div>
+                    Edit
+                </button>
+                <button type="button" class="quick-action-btn qa-danger" onclick="deleteCard(${item.id})">
+                    <div class="quick-action-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></div>
+                    Delete
+                </button>
+            </div>`;
+
+        if(item.itemType === 'netbanking') {
+            let lExpStr = getExpiryString(item.loginUpdated, item.loginExp);
+            let pExpStr = getExpiryString(item.profileUpdated, item.profileExp);
+            let mExpStr = getExpiryString(item.mpinUpdated, item.mpinExp);
+
+            display.innerHTML = `
+                <div class="credit-card bank-card-visual">
+                    <h3 style="margin:0; font-size:1.5rem; color:white; display:flex; align-items:center; gap:10px;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary-orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v3"/><path d="M12 14v3"/><path d="M16 14v3"/></svg>
+                        ${item.nick}
+                    </h3>
+                    <p style="color: var(--text-dim); margin: 5px 0 0 0; font-weight:500;">NetBanking Credentials</p>
+                </div>
+                
+                <div class="details-widget">
+                    <div class="detail-row" onclick="copy('${item.userId}', 'User ID Copied')">
+                        <span class="detail-label">User / Cust ID</span>
+                        <span class="detail-value mono">${item.userId} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>
+                    </div>
+                    <div class="detail-row" onclick="secureActionAndCopy('${item.loginPass}', 'Login Password')">
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <span class="detail-label">Login Pass</span>
+                            ${lExpStr ? `<span style="font-size:0.65rem; color:var(--text-dim);">Exp: ${lExpStr}</span>` : ''}
+                        </div>
+                        <span class="secure-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Protected</span>
+                    </div>
+                    ${item.profilePass ? `
+                    <div class="detail-row" onclick="secureActionAndCopy('${item.profilePass}', 'Profile Password')">
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <span class="detail-label">Profile Pass</span>
+                            ${pExpStr ? `<span style="font-size:0.65rem; color:var(--text-dim);">Exp: ${pExpStr}</span>` : ''}
+                        </div>
+                        <span class="secure-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Protected</span>
+                    </div>` : ''}
+                    ${item.mpin ? `
+                    <div class="detail-row" onclick="secureActionAndCopy('${item.mpin}', 'MPIN')">
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <span class="detail-label">MPIN</span>
+                            ${mExpStr ? `<span style="font-size:0.65rem; color:var(--text-dim);">Exp: ${mExpStr}</span>` : ''}
+                        </div>
+                        <span class="secure-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Protected</span>
+                    </div>` : ''}
+                    ${item.cif ? `
+                    <div class="detail-row" onclick="copy('${item.cif}', 'CIF Copied')">
+                        <span class="detail-label">CIF Number</span>
+                        <span class="detail-value mono">${item.cif} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>
+                    </div>` : ''}
+                </div>
+                
+                ${quickActionsHtml}
+                ${notesHtml}
+                
+                <button type="button" class="btn-ghost" style="margin-bottom:20px; height: 45px; border-color:var(--primary-orange); color:var(--primary-orange);" onclick="clearSelection()">
+                    ⬅️ Back to List
+                </button>
+            `;
+        } else {
+            const typeParts = item.type.split(' ');
+            const mainBrand = typeParts[0]; 
+            const subType = typeParts.slice(1).join(' '); 
+
+            let theme = item.type.includes("Infinite") || item.type.includes("Elite") ? "card-infinite" : 
+                        item.type.includes("Platinum") || item.type.includes("Signature") || item.type.includes("World") ? "card-platinum" : 
+                        item.type.includes("Gold") ? "card-gold" : "card-rupay";
+
+            let brandColor = item.type.includes("Gold") ? "#fbbf24" : 
+                             (item.type.includes("Platinum") || item.type.includes("Signature")) ? "#cbd5e1" : "#ffffff";
+
+            display.innerHTML = `
+                <div class="credit-card ${theme}">
+                    <div class="card-header-top">
+                        <div style="display: flex; align-items: center;">
+                            <div class="card-chip"></div>
+                            <svg class="contactless-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8a10 10 0 0 1 14 0"/><path d="M7 10a7 7 0 0 1 10 0"/><path d="M9 12a4 4 0 0 1 6 0"/><path d="M12 15h.01"/></svg>
+                        </div>
+                        <div class="sub-type-top">${subType}</div>
+                    </div>
+                    
+                    <div class="card-number" style="margin: 18px 0; cursor: pointer;" onclick="copy('${item.num}', 'Number Copied')">
+                        ${item.num}
+                    </div>
+                    
+                    <div class="card-footer-realistic">
+                        <div class="footer-item" style="cursor: pointer;" onclick="copy('${item.name}', 'Name Copied')">
+                            <span class="label">Card Holder</span>
+                            <span class="val">${item.name || 'PRASANNA KUMAR'}</span>
+                        </div>
+                        
+                        <div class="footer-row">
+                            <div class="footer-item" style="cursor: pointer;" onclick="copy('${item.exp}', 'Expiry Copied')">
+                                <span class="label">Expires</span>
+                                <span class="val">${item.exp}</span>
+                            </div>
+                            <div class="footer-item" style="cursor: pointer;" onclick="secureActionAndCopy('${item.cvv}', 'CVV')">
+                                <span class="label">CVV</span>
+                                <span class="secure-lock">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                    Protected
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="network-logo-container" style="color: ${brandColor}; bottom: 20px;">
+                        <span class="network-main-name">${mainBrand}</span>
+                    </div>
+                </div>
+                
+                ${quickActionsHtml}
+                ${notesHtml}
+                
+                <button type="button" class="btn-ghost" style="margin-bottom:20px; height: 45px; border-color:var(--primary-orange); color:var(--primary-orange);" onclick="clearSelection()">
+                    ⬅️ Back to List
+                </button>`;
+        }
+        display.classList.remove('hidden');
+    }
+
+    function updateBiometricUI() {
+        const bioUnlockBtn = document.getElementById("bioUnlockBtn");
+        const setupBtn = document.querySelector('button[onclick="registerBiometric()"]');
+        const disableBtn = document.querySelector('button[onclick="disableBiometric()"]');
+        const enabled = localStorage.getItem("vault_bio_enabled") === "true";
+
+        if (bioUnlockBtn) {
+            enabled ? bioUnlockBtn.classList.remove("hidden") : bioUnlockBtn.classList.add("hidden");
+        }
+        if (setupBtn && disableBtn) {
+            if (enabled) {
+                setupBtn.classList.add("hidden");
+                disableBtn.classList.remove("hidden");
+            } else {
+                setupBtn.classList.remove("hidden");
+                disableBtn.classList.add("hidden");
+            }
+        }
+    }
+
+    function togglePasswordChangeFields() {
+        const area = document.getElementById('passChangeArea');
+        area.classList.toggle('hidden');
+    }
+
+    function toggleSettings() {
+        resetPasswordIcons();
+        const settings = document.getElementById('settingsSection');
+        const isHidden = settings.classList.toggle('hidden');
+        const id = document.getElementById('cardSelector').value;
+
+        if (!isHidden) {
+            document.getElementById('cardListView').classList.add('hidden');
+            document.getElementById('cardDisplay').classList.add('hidden');
+            document.getElementById('actionBtn').classList.add('hidden');
+            document.getElementById('addForm').classList.add('hidden');
+            document.getElementById('passChangeArea').classList.add('hidden');
+            updateBiometricUI();
+            updateSettingsSyncUI();
+        } else {
+            if (id) {
+                handleSelection();
+            } else {
+                document.getElementById('cardListView').classList.remove('hidden');
+                document.getElementById('actionBtn').classList.remove('hidden');
+            }
+        }
+    }
+
+    function changePassword() {
+        const curr = document.getElementById('settCurrPass').value;
+        const next = document.getElementById('settNewPass').value;
+        if (CryptoJS.SHA256(curr).toString() !== localStorage.getItem('vault_hash')) return alert("Current password incorrect!");
+        if (!next || next.length < 4) return alert("New password must be at least 4 characters.");
+        
+        const cards = getCards();
+        localStorage.setItem('vault_data', CryptoJS.AES.encrypt(JSON.stringify(cards), next).toString());
+        localStorage.setItem('vault_hash', CryptoJS.SHA256(next).toString());
+        MASTER_KEY = next;
+        
+        // Auto sync updated data to Drive
+        syncToCloud(false);
+        
+        alert("Password updated and synced!");
+        location.reload();
+    }
+
+    function generateAndSaveRK() {
+        const curr = prompt("Enter your Master Password to generate a Recovery Key:");
+        if (CryptoJS.SHA256(curr).toString() !== localStorage.getItem('vault_hash')) return alert("Password incorrect!");
+        let r = ""; const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        for(let i=0; i<16; i++) { if(i>0 && i%4===0) r+="-"; r+=c.charAt(Math.floor(Math.random()*c.length)); }
+        localStorage.setItem('vault_rk', CryptoJS.SHA256(r).toString());
+        document.getElementById('rkVal').innerText = r;
+        document.getElementById('rkBox').classList.remove('hidden');
+        alert("Recovery Key Generated!");
+    }
+
+    function exportData() {
+        const blob = new Blob([JSON.stringify({data:localStorage.getItem('vault_data'), hash:localStorage.getItem('vault_hash'), rk:localStorage.getItem('vault_rk')})], {type:"text/plain"});
+        const a = document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="vault_backup.txt"; a.click();
+    }
+
+    function importData(i) {
+        if (!i.files || !i.files[0]) return;
+        const r = new FileReader();
+        r.onload = (e) => {
+            try {
+                const j = JSON.parse(e.target.result);
+                if (!j.hash || !j.data) throw new Error("Invalid format");
+                
+                pendingRestoreData = j;
+                
+                document.getElementById('onboarding').classList.add('hidden');
+                document.getElementById('unlockSection').classList.add('hidden');
+                document.getElementById('mainContent').classList.add('hidden');
+                
+                document.getElementById('restorePass').value = '';
+                resetPasswordIcons();
+                document.getElementById('restoreSection').classList.remove('hidden');
+
+            } catch(err) {
+                alert("Backup file corrupted or incompatible.");
+                console.error(err);
+            }
+            i.value = ''; 
+        };
+        r.readAsText(i.files[0]);
+    }
+
+    function confirmRestore() {
+        if (!pendingRestoreData) return;
+        const pass = document.getElementById('restorePass').value;
+        if (!pass) return alert("Please enter the password.");
+
+        const j = pendingRestoreData;
+
+        if (CryptoJS.SHA256(pass).toString() !== j.hash) {
+            alert("Wrong password for this backup!");
+            return;
+        }
+
+        try {
+            const decrypted = CryptoJS.AES.decrypt(j.data, pass).toString(CryptoJS.enc.Utf8);
+            if (!decrypted) throw new Error("Decryption failed");
+            
+            localStorage.setItem('vault_data', j.data);
+            localStorage.setItem('vault_hash', j.hash);
+            if (j.rk) localStorage.setItem('vault_rk', j.rk);
+
+            MASTER_KEY = pass; 
+            alert("Backup restored successfully!");
+
+            document.getElementById('restoreSection').classList.add('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            updateDropdown();
+            updateSettingsSyncUI();
+        } catch(err) {
+            alert("Failed to decrypt backup data.");
+        }
+    }
+
+    function cancelRestore() {
+        pendingRestoreData = null;
+        document.getElementById('restoreSection').classList.add('hidden');
+        location.reload(); 
+    }
+
+    function showRecovery() { document.getElementById('unlockSection').classList.add('hidden'); document.getElementById('recoverySection').classList.remove('hidden'); }
+    
+    function handleRecovery() {
+        const input = document.getElementById('rkInput').value.trim();
+        if (CryptoJS.SHA256(input).toString() !== localStorage.getItem('vault_rk')) return alert("Invalid Recovery Key!");
+        const next = prompt("Enter New Master Password:");
+        if (next && next.length >= 4) { localStorage.setItem('vault_hash', CryptoJS.SHA256(next).toString()); location.reload(); }
+    }
+
+    // ===== WebAuthn Helpers =====
+    function bufferToBase64(buffer) { return btoa(String.fromCharCode(...new Uint8Array(buffer))); }
+    function base64ToBuffer(base64) { return Uint8Array.from(atob(base64), c => c.charCodeAt(0)); }
+    function randomChallenge() { return Uint8Array.from(window.crypto.getRandomValues(new Uint8Array(32))); }
+
+    async function registerBiometric() {
+        if (!window.PublicKeyCredential) return alert("WebAuthn not supported on this device.");
+
+        const challenge = randomChallenge();
+        const publicKey = {
+            challenge: challenge,
+            rp: { name: "Secure Card Vault" },
+            user: { id: randomChallenge(), name: "vault-user", displayName: "Vault User" },
+            pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+            authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
+            timeout: 60000,
+            attestation: "none"
+        };
+
+        try {
+            const credential = await navigator.credentials.create({ publicKey });
+            const credId = bufferToBase64(credential.rawId);
+            localStorage.setItem("vault_bio_id", credId);
+            localStorage.setItem("vault_bio_enabled", "true");
+
+            const deviceKey = bufferToBase64(randomChallenge());
+            localStorage.setItem("vault_device_key", deviceKey);
+
+            const encryptedMaster = CryptoJS.AES.encrypt(MASTER_KEY, deviceKey).toString();
+            localStorage.setItem("vault_master_enc", encryptedMaster);
+
+            alert("Biometric enabled successfully!");
+            updateBiometricUI();
+        } catch (err) {
+            console.error(err);
+            alert("Biometric registration failed.");
+        }
+    }
+
+    async function unlockWithBiometric() {
+        const enabled = localStorage.getItem("vault_bio_enabled");
+        const storedId = localStorage.getItem("vault_bio_id");
+
+        if (!enabled || !storedId) return alert("Biometrics not enabled.");
+
+        const challenge = randomChallenge();
+        const publicKey = {
+            challenge,
+            allowCredentials: [{ id: base64ToBuffer(storedId), type: "public-key", transports: ["internal"] }],
+            userVerification: "required",
+            timeout: 60000
+        };
+
+        try {
+            await navigator.credentials.get({ publicKey });
+
+            const deviceKey = localStorage.getItem("vault_device_key");
+            const encryptedMaster = localStorage.getItem("vault_master_enc");
+            const decryptedMaster = CryptoJS.AES.decrypt(encryptedMaster, deviceKey).toString(CryptoJS.enc.Utf8);
+
+            if (!decryptedMaster) return alert("Failed to unlock vault.");
+
+            MASTER_KEY = decryptedMaster;
+
+            document.getElementById('unlockSection').classList.add('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            updateDropdown();
+            updateSettingsSyncUI();
+        } catch (err) {
+            alert("Biometric verification failed.");
+        }
+    }
+
+    async function disableBiometric() {
+        const enabled = localStorage.getItem("vault_bio_enabled");
+        const storedId = localStorage.getItem("vault_bio_id");
+
+        if (!enabled || !storedId) return alert("Biometrics already disabled.");
+
+        const confirmDisable = confirm("Verify identity to disable biometrics?");
+        if (!confirmDisable) return;
+
+        const challenge = randomChallenge();
+        const publicKey = {
+            challenge,
+            allowCredentials: [{ id: base64ToBuffer(storedId), type: "public-key", transports: ["internal"] }],
+            userVerification: "required",
+            timeout: 60000
+        };
+
+        try {
+            await navigator.credentials.get({ publicKey });
+
+            localStorage.removeItem("vault_bio_id");
+            localStorage.removeItem("vault_bio_enabled");
+            localStorage.removeItem("vault_master_enc");
+            localStorage.removeItem("vault_device_key");
+
+            alert("Biometrics disabled securely.");
+            updateBiometricUI();
+        } catch (err) {
+            alert("Verification failed. Cannot disable biometrics.");
+        }
+    }
+    
+    function deleteCard(id) {
+        if(confirm("Are you sure you want to delete this item?")) {
+            let items = getCards();
+            items = items.filter(c => c.id !== id);
+            localStorage.setItem('vault_data', CryptoJS.AES.encrypt(JSON.stringify(items), MASTER_KEY).toString());
+            clearSelection();
+            updateDropdown();
+            syncToCloud(false);
+        }
+    }
 </script>
-
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js")
+      .then(() => console.log("Vault App Installed & Cached"))
+      .catch((err) => console.error("SW Fail", err));
+  }
+</script>
 </body>
 </html>
