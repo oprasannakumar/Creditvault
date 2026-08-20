@@ -191,14 +191,14 @@
             width: 38px; height: 38px; border-radius: 50%; background: var(--glass);
             border: 1.5px solid var(--primary-orange); color: var(--primary-orange);
             display: flex; align-items: center; justify-content: center; cursor: pointer;
-            font-weight: 700; font-size: 1.1rem; transition: 0.2s; padding: 0;
+            font-weight: 700; font-size: 1.1rem; transition: 0.2s; padding: 0; flex-shrink: 0;
         }
         .profile-btn:active { transform: scale(0.92); background: rgba(245, 158, 11, 0.15); }
 
         /* User Profile Modal Menu */
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
-            z-index: 1500; display: flex; align-items: flex-start; justify-content: flex-end; padding: 1rem;
+            z-index: 1500; display: flex; align-items: flex-start; justify-content: flex-start; padding: 1rem;
         }
         .profile-menu {
             background: #1e293b; border: 1px solid var(--glass-border); border-radius: 16px;
@@ -277,9 +277,6 @@
                 </button>
                 <button type="button" class="menu-item danger" onclick="handleVaultLogout()">
                     🔒 Lock Vault
-                </button>
-                <button type="button" class="menu-item danger" onclick="exitVaultApp()">
-                    🚪 Exit Application
                 </button>
             </div>
         </div>
@@ -362,12 +359,12 @@
         </div>
     </div>
 
-    <!-- Restore Section -->
+    <!-- Unified Restore Section for Drive & Local -->
     <div id="restoreSection" class="hidden">
-        <h3>Restore Backup</h3>
-        <p class="sub-text">Enter the password used when this backup was created.</p>
+        <h3 id="restoreTitle">Restore Backup</h3>
+        <p class="sub-text" id="restoreSubText">Enter the password used when this backup was created.</p>
         <div class="pwd-wrapper">
-            <input type="password" id="restorePass" placeholder="Backup Password">
+            <input type="password" id="restorePass" placeholder="Master Password">
             <button type="button" class="pwd-toggle" onclick="togglePwd('restorePass', this)" tabindex="-1">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </button>
@@ -388,12 +385,19 @@
     <!-- Main Authenticated Content -->
     <div id="mainContent" class="hidden">
         
+        <!-- Updated Top Bar Structure -->
         <div class="top-action-bar">
-            <h2 style="margin:0; font-size:1.15rem; color:var(--text-white); font-weight:700;">My Vault</h2>
-            <div style="display:flex; gap:8px; align-items: center;">
+            <div style="display:flex; align-items: center; gap: 12px;">
                 <button type="button" class="profile-btn" id="topProfileAvatar" onclick="toggleProfileMenu()" title="Account & Menu">
                     U
                 </button>
+                <button type="button" id="settingsBackBtn" class="btn-ghost hidden" style="padding: 0 10px; height: 38px; width: auto; border-color: var(--primary-orange); color: var(--primary-orange);" onclick="closeSettingsView()">
+                    ⬅️ Back
+                </button>
+                <h2 id="topBarTitle" style="margin:0; font-size:1.15rem; color:var(--text-white); font-weight:700;">My Vault</h2>
+            </div>
+            <div style="display:flex; gap:8px; align-items: center;">
+                <button type="button" class="btn-danger" style="width:36px; height:36px; padding:0; font-size:1.1rem;" onclick="handleVaultLogout()" title="Lock Vault">🔒</button>
             </div>
         </div>
 
@@ -408,7 +412,7 @@
         <div id="settingsSection" class="hidden">
             <h3>Security Settings</h3>
 
-            <!-- Password Change Interface with Confirmation -->
+            <!-- Password Change Interface -->
             <div id="passChangeWrapper">
                 <button type="button" id="startChangePassBtn" class="btn-ghost" style="margin-bottom:12px;" onclick="enterPasswordChangeMode()">
                     🔑 Change Master Password
@@ -441,7 +445,7 @@
                 </div>
             </div>
 
-            <!-- Other Settings (Hidden during active password change) -->
+            <!-- Other Settings -->
             <div id="generalSettingsGroup">
                 <div id="rkBox" class="hidden">
                     <div class="rk-display" id="rkVal"></div>
@@ -449,7 +453,13 @@
                 <button type="button" class="btn-link" onclick="generateAndSaveRK()" id="rkBtn">Generate Recovery Key</button>
                 <button type="button" class="btn-link" onclick="registerBiometric()">🔐 Setup Biometrics</button>
                 <button type="button" class="btn-link" style="color:var(--danger)" onclick="disableBiometric()">❌ Disable Biometrics</button>
-                <button type="button" class="btn-ghost" style="margin-top:15px;" onclick="closeSettingsView()">⬅️ Back to Cards</button>
+                
+                <div id="cloudSettingsArea" style="margin-top: 15px;">
+                    <div id="googleConnectedView" class="hidden">
+                        <p id="googleUserLabel" class="sub-text" style="margin-bottom:8px; color:#10b981; font-size:0.85rem;">Connected to Google</p>
+                        <button type="button" class="btn-danger" style="margin-bottom:12px;" onclick="logoutGoogle()">🚪 Disconnect Google Account</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -563,7 +573,9 @@
 
 <script>
     let MASTER_KEY = "";
-    let pendingRestoreData = null;
+    let pendingRestoreData = null; // Used for local file imports
+    let pendingCloudRestorePayload = null; // Used for Google Drive payload awaiting decryption
+
     const BACKEND_URL = "https://vault-backend.oprasannak.workers.dev";
     const GOOGLE_CLIENT_ID = "455353267035-tvggeucvch4scohdpp1bucugkaeb5a2g.apps.googleusercontent.com";
     let codeClient = null;
@@ -735,7 +747,7 @@
     // --- Profile & Menu Actions --- //
     function updateProfileUI() {
         const email = localStorage.getItem("vault_user_email");
-        const name = localStorage.getItem("vault_user_name") || "Prasanna Kumar";
+        const name = localStorage.getItem("vault_user_name") || "Vault User";
         const initial = email ? email.charAt(0).toUpperCase() : name.charAt(0).toUpperCase();
 
         const topAvatar = document.getElementById("topProfileAvatar");
@@ -743,6 +755,9 @@
         const modalName = document.getElementById("modalUserName");
         const modalEmail = document.getElementById("modalUserEmail");
         const googleBtn = document.getElementById("googleMenuBtn");
+        
+        const connectedView = document.getElementById("googleConnectedView");
+        const userLabel = document.getElementById("googleUserLabel");
 
         if (topAvatar) topAvatar.innerText = initial;
         if (modalAvatar) modalAvatar.innerText = initial;
@@ -753,9 +768,12 @@
             if (email) {
                 googleBtn.innerText = "🚪 Unlink Google Account";
                 googleBtn.classList.add("danger");
+                if (connectedView) connectedView.classList.remove("hidden");
+                if (userLabel) userLabel.innerText = `✅ Linked: ${email}`;
             } else {
                 googleBtn.innerText = "☁️ Link Google Account";
                 googleBtn.classList.remove("danger");
+                if (connectedView) connectedView.classList.add("hidden");
             }
         }
     }
@@ -773,22 +791,19 @@
         closeProfileMenu();
         const userId = localStorage.getItem("vault_user_id");
         if (userId) {
-            if (confirm("Disconnect Google Account? Cloud sync will be deactivated.")) {
-                localStorage.removeItem("vault_user_id");
-                localStorage.removeItem("vault_user_email");
-                localStorage.removeItem("vault_user_name");
-                updateProfileUI();
-                showToast("Google Account Unlinked");
-            }
+            logoutGoogle();
         } else {
             connectDrive();
         }
     }
 
-    function exitVaultApp() {
-        closeProfileMenu();
-        if (confirm("Exit application and lock vault?")) {
-            handleVaultLogout();
+    function logoutGoogle() {
+        if (confirm("Disconnect Google Account? Cloud sync will be deactivated.")) {
+            localStorage.removeItem("vault_user_id");
+            localStorage.removeItem("vault_user_email");
+            localStorage.removeItem("vault_user_name");
+            updateProfileUI();
+            showToast("Google Account Unlinked");
         }
     }
 
@@ -797,13 +812,11 @@
         closeProfileMenu();
         showToast("Starting full backup...");
 
-        // 1. Sync to Google Drive if connected
         const userId = localStorage.getItem("vault_user_id");
         if (userId) {
             await syncToCloud(false);
         }
 
-        // 2. Export local text file
         exportData();
         showToast("Backup Complete (Drive & File) ✅");
     }
@@ -855,35 +868,31 @@
                 throw new Error(data.error);
             }
 
-            const payload = data.payload;
-            let pass = prompt("Cloud backup found! Enter your Master Password to decrypt:");
-            if (!pass) return showToast("Restore cancelled.");
+            // Route to Unified Restore Modal
+            pendingCloudRestorePayload = data.payload;
+            pendingRestoreData = null; 
+            
+            document.getElementById('restoreTitle').innerText = "Cloud Backup Found";
+            document.getElementById('restoreSubText').innerText = "Enter your Master Password to decrypt the Google Drive backup.";
+            
+            document.getElementById('onboarding').classList.add('hidden');
+            document.getElementById('unlockSection').classList.add('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+            
+            document.getElementById('restorePass').value = '';
+            resetPasswordIcons();
+            document.getElementById('restoreSection').classList.remove('hidden');
 
-            try {
-                const testDecrypt = CryptoJS.AES.decrypt(payload, pass).toString(CryptoJS.enc.Utf8);
-                if (!testDecrypt) throw new Error("Invalid password");
-
-                localStorage.setItem('vault_data', payload);
-                localStorage.setItem('vault_hash', CryptoJS.SHA256(pass).toString());
-                MASTER_KEY = pass;
-
-                showToast("Restored from Drive! ✅");
-                document.getElementById('onboarding').classList.add('hidden');
-                document.getElementById('unlockSection').classList.add('hidden');
-                document.getElementById('mainContent').classList.remove('hidden');
-                updateDropdown();
-                updateProfileUI();
-            } catch (decErr) {
-                alert("Decryption failed. Wrong Master Password.");
-            }
         } catch (e) {
             alert("Restore Error: " + e.message);
         }
     }
 
     async function handleVaultLogout() {
+        closeProfileMenu();
         const userId = localStorage.getItem("vault_user_id");
         if (userId) {
+            showToast("Syncing before lock...");
             await syncToCloud(false);
         }
         location.reload();
@@ -895,17 +904,30 @@
         resetPasswordIcons();
         exitPasswordChangeMode();
         
+        // Hide Main Stuff
         document.getElementById('cardListView').classList.add('hidden');
         document.getElementById('cardDisplay').classList.add('hidden');
         document.getElementById('actionBtn').classList.add('hidden');
         document.getElementById('addForm').classList.add('hidden');
         document.getElementById('settingsSection').classList.remove('hidden');
+        
+        // Update Top Bar
+        document.getElementById('topProfileAvatar').classList.add('hidden');
+        document.getElementById('settingsBackBtn').classList.remove('hidden');
+        document.getElementById('topBarTitle').innerText = "Settings";
+
         updateBiometricUI();
+        updateProfileUI();
     }
 
     function closeSettingsView() {
         resetPasswordIcons();
         document.getElementById('settingsSection').classList.add('hidden');
+        
+        // Restore Top Bar
+        document.getElementById('topProfileAvatar').classList.remove('hidden');
+        document.getElementById('settingsBackBtn').classList.add('hidden');
+        document.getElementById('topBarTitle').innerText = "My Vault";
         
         const id = document.getElementById('cardSelector').value;
         if (id) {
@@ -948,7 +970,6 @@
         }
         
         const cards = getCards();
-        // Master password is only used locally to re-encrypt stored items and hash
         localStorage.setItem('vault_data', CryptoJS.AES.encrypt(JSON.stringify(cards), next).toString());
         localStorage.setItem('vault_hash', CryptoJS.SHA256(next).toString());
         MASTER_KEY = next;
@@ -983,6 +1004,10 @@
                 if (!j.hash || !j.data) throw new Error("Invalid format");
                 
                 pendingRestoreData = j;
+                pendingCloudRestorePayload = null;
+                
+                document.getElementById('restoreTitle').innerText = "Restore Local Backup";
+                document.getElementById('restoreSubText').innerText = "Enter the Master Password used when this file was created.";
                 
                 document.getElementById('onboarding').classList.add('hidden');
                 document.getElementById('unlockSection').classList.add('hidden');
@@ -1002,39 +1027,57 @@
     }
 
     function confirmRestore() {
-        if (!pendingRestoreData) return;
         const pass = document.getElementById('restorePass').value;
         if (!pass) return alert("Please enter the password.");
 
-        const j = pendingRestoreData;
+        if (pendingCloudRestorePayload) {
+            try {
+                const testDecrypt = CryptoJS.AES.decrypt(pendingCloudRestorePayload, pass).toString(CryptoJS.enc.Utf8);
+                if (!testDecrypt) throw new Error("Invalid password");
 
-        if (CryptoJS.SHA256(pass).toString() !== j.hash) {
-            alert("Wrong password for this backup!");
-            return;
+                localStorage.setItem('vault_data', pendingCloudRestorePayload);
+                localStorage.setItem('vault_hash', CryptoJS.SHA256(pass).toString());
+                MASTER_KEY = pass;
+
+                showToast("Restored from Drive! ✅");
+                finishRestoreSuccess();
+            } catch (decErr) {
+                alert("Decryption failed. Incorrect Master Password.");
+            }
+        } else if (pendingRestoreData) {
+            const j = pendingRestoreData;
+            if (CryptoJS.SHA256(pass).toString() !== j.hash) {
+                return alert("Wrong password for this file backup!");
+            }
+            try {
+                const decrypted = CryptoJS.AES.decrypt(j.data, pass).toString(CryptoJS.enc.Utf8);
+                if (!decrypted) throw new Error("Decryption failed");
+                
+                localStorage.setItem('vault_data', j.data);
+                localStorage.setItem('vault_hash', j.hash);
+                if (j.rk) localStorage.setItem('vault_rk', j.rk);
+
+                MASTER_KEY = pass; 
+                showToast("Local Backup restored successfully!");
+                finishRestoreSuccess();
+            } catch(err) {
+                alert("Failed to decrypt local backup data.");
+            }
         }
+    }
 
-        try {
-            const decrypted = CryptoJS.AES.decrypt(j.data, pass).toString(CryptoJS.enc.Utf8);
-            if (!decrypted) throw new Error("Decryption failed");
-            
-            localStorage.setItem('vault_data', j.data);
-            localStorage.setItem('vault_hash', j.hash);
-            if (j.rk) localStorage.setItem('vault_rk', j.rk);
-
-            MASTER_KEY = pass; 
-            alert("Backup restored successfully!");
-
-            document.getElementById('restoreSection').classList.add('hidden');
-            document.getElementById('mainContent').classList.remove('hidden');
-            updateDropdown();
-            updateProfileUI();
-        } catch(err) {
-            alert("Failed to decrypt backup data.");
-        }
+    function finishRestoreSuccess() {
+        pendingRestoreData = null;
+        pendingCloudRestorePayload = null;
+        document.getElementById('restoreSection').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+        updateDropdown();
+        updateProfileUI();
     }
 
     function cancelRestore() {
         pendingRestoreData = null;
+        pendingCloudRestorePayload = null;
         document.getElementById('restoreSection').classList.add('hidden');
         location.reload(); 
     }
