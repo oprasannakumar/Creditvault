@@ -191,7 +191,7 @@
             width: 38px; height: 38px; border-radius: 50%; background: var(--glass);
             border: 1.5px solid var(--primary-orange); color: var(--primary-orange);
             display: flex; align-items: center; justify-content: center; cursor: pointer;
-            font-weight: 700; font-size: 1.1rem; transition: 0.2s; padding: 0; flex-shrink: 0;
+            font-weight: 700; font-size: 1.1rem; transition: 0.2s; padding: 0; flex-shrink: 0; overflow: hidden;
         }
         .profile-btn:active { transform: scale(0.92); background: rgba(245, 158, 11, 0.15); }
 
@@ -199,8 +199,8 @@
         .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; }
         .profile-avatar {
             width: 70px; height: 70px; border-radius: 50%; background: rgba(245, 158, 11, 0.15);
-            border: 1.5px solid var(--primary-orange); display: flex; align-items: center; justify-content: center;
-            font-size: 2rem; color: var(--primary-orange); font-weight: 700; margin-bottom: 10px;
+            border: 2px solid var(--primary-orange); display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; color: var(--primary-orange); font-weight: 700; margin-bottom: 10px; overflow: hidden;
         }
         .profile-name { font-weight: 700; font-size: 1.2rem; color: white; }
         .profile-email { font-size: 0.85rem; color: var(--text-dim); }
@@ -538,8 +538,8 @@
 
 <script>
     let MASTER_KEY = "";
-    let pendingRestoreData = null; // Used for local file imports
-    let pendingCloudRestorePayload = null; // Used for Google Drive payload awaiting decryption
+    let pendingRestoreData = null; 
+    let pendingCloudRestorePayload = null; 
 
     const BACKEND_URL = "https://vault-backend.oprasannak.workers.dev";
     const GOOGLE_CLIENT_ID = "455353267035-tvggeucvch4scohdpp1bucugkaeb5a2g.apps.googleusercontent.com";
@@ -663,6 +663,7 @@
                         localStorage.setItem("vault_user_id", data.userId);
                         if (data.email) localStorage.setItem("vault_user_email", data.email);
                         if (data.name) localStorage.setItem("vault_user_name", data.name);
+                        if (data.picture) localStorage.setItem("vault_user_picture", data.picture);
 
                         showToast("Google Linked!");
                         updateProfileUI();
@@ -709,10 +710,11 @@
         updateProfileUI();
     }
 
-    // --- Profile & Menu Actions --- //
+    // --- Profile UI Management --- //
     function updateProfileUI() {
         const email = localStorage.getItem("vault_user_email");
         const name = localStorage.getItem("vault_user_name") || "Prasanna Kumar";
+        const pictureUrl = localStorage.getItem("vault_user_picture");
         const initial = email ? email.charAt(0).toUpperCase() : name.charAt(0).toUpperCase();
 
         const topAvatar = document.getElementById("topProfileAvatar");
@@ -724,8 +726,20 @@
         const googleSyncBtn = document.getElementById("googleSyncBtn");
         const googleUnlinkBtn = document.getElementById("googleUnlinkBtn");
 
-        if (topAvatar) topAvatar.innerText = initial;
-        if (settingsAvatar) settingsAvatar.innerText = initial;
+        const renderAvatar = (el) => {
+            if (!el) return;
+            if (pictureUrl) {
+                el.innerHTML = `<img src="${pictureUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover; pointer-events:none;">`;
+                el.style.border = "none";
+            } else {
+                el.innerHTML = initial;
+                el.style.border = "1.5px solid var(--primary-orange)";
+            }
+        };
+
+        renderAvatar(topAvatar);
+        renderAvatar(settingsAvatar);
+
         if (settingsName) settingsName.innerText = name;
         if (settingsEmail) settingsEmail.innerText = email || "Offline Mode (Local Storage Only)";
 
@@ -745,16 +759,13 @@
         resetPasswordIcons();
         exitPasswordChangeMode();
         
-        // Hide Main Stuff
         document.getElementById('cardListView').classList.add('hidden');
         document.getElementById('cardDisplay').classList.add('hidden');
         document.getElementById('actionBtn').classList.add('hidden');
         document.getElementById('addForm').classList.add('hidden');
         
-        // Show Full Screen Profile View
         document.getElementById('profileSettingsView').classList.remove('hidden');
         
-        // Update Top Bar
         document.getElementById('topProfileAvatar').classList.add('hidden');
         document.getElementById('settingsBackBtn').classList.remove('hidden');
         document.getElementById('topBarTitle').innerText = "Settings";
@@ -766,7 +777,6 @@
         resetPasswordIcons();
         document.getElementById('profileSettingsView').classList.add('hidden');
         
-        // Restore Top Bar
         document.getElementById('topProfileAvatar').classList.remove('hidden');
         document.getElementById('settingsBackBtn').classList.add('hidden');
         document.getElementById('topBarTitle').innerText = "My Vault";
@@ -781,18 +791,14 @@
     }
 
     function enterPasswordChangeMode() {
-        // Hide profile header and the menu list
         document.querySelector('.profile-header').classList.add('hidden');
         document.getElementById('profileMenuList').classList.add('hidden');
-        // Show password change view
         document.getElementById('passChangeView').classList.remove('hidden');
     }
 
     function exitPasswordChangeMode() {
-        // Show profile header and the menu list
         document.querySelector('.profile-header').classList.remove('hidden');
         document.getElementById('profileMenuList').classList.remove('hidden');
-        // Hide password change view
         document.getElementById('passChangeView').classList.add('hidden');
         
         document.getElementById('settCurrPass').value = "";
@@ -806,6 +812,7 @@
             localStorage.removeItem("vault_user_id");
             localStorage.removeItem("vault_user_email");
             localStorage.removeItem("vault_user_name");
+            localStorage.removeItem("vault_user_picture");
             updateProfileUI();
             showToast("Google Account Unlinked");
         }
@@ -858,7 +865,6 @@
                 throw new Error(data.error);
             }
 
-            // Route to Unified Restore Modal
             pendingCloudRestorePayload = data.payload;
             pendingRestoreData = null; 
             
