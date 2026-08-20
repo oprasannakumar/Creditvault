@@ -376,7 +376,7 @@
             
             <div class="profile-header">
                 <div class="profile-avatar" id="settingsAvatar">U</div>
-                <div class="profile-name" id="settingsUserName">Vault User</div>
+                <div class="profile-name" id="settingsUserName">Prasanna Kumar</div>
                 <div class="profile-email" id="settingsUserEmail">Offline Account</div>
             </div>
 
@@ -394,11 +394,7 @@
 
                 <button type="button" class="menu-item" id="googleLinkBtn" onclick="connectDrive()">☁️ Link Google Account</button>
                 <button type="button" class="menu-item hidden" id="googleSyncBtn" onclick="syncToCloud(true)">🔄 Sync to Google Drive</button>
-                <button type="button" class="menu-item danger hidden" id="googleUnlinkBtn" onclick="logoutGoogle()">🚪 Unlink Google Account</button>
-
-                <hr style="border-color: var(--glass-border); width: 100%; margin: 10px 0;">
-
-                <button type="button" class="menu-item danger" onclick="handleVaultLogout()">🔒 Logout & Lock Vault</button>
+                <button type="button" class="menu-item danger hidden" id="googleUnlinkBtn" onclick="logoutGoogle()">🚪 Logout</button>
             </div>
 
             <!-- Isolated Change Password View (Only visible when changing password) -->
@@ -716,7 +712,7 @@
     // --- Profile & Menu Actions --- //
     function updateProfileUI() {
         const email = localStorage.getItem("vault_user_email");
-        const name = localStorage.getItem("vault_user_name") || "Vault User";
+        const name = localStorage.getItem("vault_user_name") || "Prasanna Kumar";
         const initial = email ? email.charAt(0).toUpperCase() : name.charAt(0).toUpperCase();
 
         const topAvatar = document.getElementById("topProfileAvatar");
